@@ -19,6 +19,7 @@ int main(){
     memory[3] = 0x00;
     memory[4] = 0x00;
     
+    // mov ecx, 3
     memory[5] = 0xB9;
     memory[6] = 0x03;
     memory[7] = 0x00;
