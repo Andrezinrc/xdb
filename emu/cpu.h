@@ -21,6 +21,7 @@ struct CPU {
 };
 
 void cpu_init(struct CPU *cpu, uint32_t mem_size);
+void print_state(struct CPU *cpu);
 void cpu_step(struct CPU *cpu, uint8_t *memory);
 
 

@@ -69,18 +69,9 @@ int main(){
     while(1){
         cpu_step(&cpu, memory);
         disassemble(memory, cpu.eip);
+        //print_state(&cpu);
 
-
-        /*
-        printf("EIP=%04X  EAX=%08X  ECX=%08X  |  FLAGS: ZF=%d SF=%d CF=%d OF=%d\n",
-              cpu.eip,
-              cpu.eax.e,
-              cpu.ecx.e,
-              cpu.flags.ZF,
-              cpu.flags.SF,
-              cpu.flags.CF,
-              cpu.flags.OF);
-        */
+     
         if(cpu.eip >= MEM_SIZE || memory[cpu.eip] == 0xF4) break; 
     }
 

@@ -38,6 +38,18 @@ void update_sub_flags(struct CPU *cpu, uint32_t a, uint32_t b, uint32_t res) {
     cpu->flags.OF = (((sa ^ sb) & (sa ^ sr)) < 0);
 }
 
+
+void print_state(struct CPU *cpu) {
+    printf(" EIP=%04X  EAX=%08X  ECX=%08X  |  FLAGS: ZF=%d SF=%d CF=%d OF=%d\n",
+           cpu->eip,
+           cpu->eax.e,
+           cpu->ecx.e,
+           cpu->flags.ZF,
+           cpu->flags.SF,
+           cpu->flags.CF,
+           cpu->flags.OF);
+}
+
 void cpu_step(struct CPU *cpu, uint8_t *memory) {
     uint8_t opcode = mem_read8(memory, cpu->eip);
 
