@@ -3,6 +3,14 @@
 
 #include "../cpu.h"
 
+//#define DEBUG_KERNEL
+
+#ifdef DEBUG_KERNEL
+    #define KDEBUG(...) printf(__VA_ARGS__)
+#else
+    #define KDEBUG(...)
+#endif
+
 // syscalls
 #define SYS_EXIT  1
 #define SYS_WRITE 4

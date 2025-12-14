@@ -6,7 +6,7 @@ static int kernel_inicializado = 0;
 void kernel_init(void) {
     if (kernel_inicializado) return;
     
-    printf("Inicializado\n");
+    KDEBUG("Inicializado\n");
     kernel_inicializado = 1;
 }
 
@@ -16,10 +16,11 @@ static void handle_write(struct CPU *cpu, uint8_t *memoria) {
         return;
     }
 
-    printf("Process: ");
+    printf("Processo: ");
     for (uint32_t i=0;i<cpu->edx.e;i++) {
         putchar(memoria[cpu->ecx.e + i]);
     }
+    printf("\n");
     
     cpu->eax.e = cpu->edx.e;
 }
@@ -34,7 +35,7 @@ void kernel_handle_syscall(struct CPU *cpu, uint8_t *memory) {
     
     int syscall_num = cpu->eax.e;
     
-    printf("Syscall %d em EIP=0x%08X\n", syscall_num, cpu->eip);
+    KDEBUG("Syscall %d em EIP=0x%08X\n", syscall_num, cpu->eip);
     
     switch (syscall_num) {
         case SYS_EXIT:
@@ -46,7 +47,7 @@ void kernel_handle_syscall(struct CPU *cpu, uint8_t *memory) {
             break;
             
         default:
-            printf("Syscall %d não implementada\n", syscall_num);
+            KDEBUG("Syscall %d não implementada\n", syscall_num);
             cpu->eax.e = -1;
             break;
     }

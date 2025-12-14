@@ -21,7 +21,7 @@ int main(){
     proc.stopped = 0;
     fp_register(&proc);
 
-    FILE *f = fopen("teste_syscall.bin", "rb");
+    FILE *f = fopen("test_syscall.bin", "rb");
     if(!f) {
        printf("Erro ao abrir arquivo\n");
        return -1;
@@ -54,7 +54,6 @@ int main(){
                 break;
         }
 
-        // Checa se hitou breakpoint
         int idx = bp_check(&cpu);
         if (idx >= 0) {
             printf("Breakpoint atingido em 0x%X\n", cpu.eip);
