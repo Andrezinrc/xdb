@@ -1,37 +1,38 @@
 #include "kernel.h"
 #include <stdio.h>
 
-static int kernel_inicializado = 0;
+static int kernel_initialized = 0;
 
 void kernel_init(void) {
-    if (kernel_inicializado) return;
+    if (kernel_initialized) return;
     
     KDEBUG("Inicializado\n");
-    kernel_inicializado = 1;
+    kernel_initialized = 1;
 }
 
-static void handle_write(struct CPU *cpu, uint8_t *memoria) {
+static void handle_write(struct CPU *cpu, uint8_t *memory) {
     if (cpu->ebx.e != 1) {
-        cpu->eax.e = -1;  // Erro
+        cpu->eax.e = -1;
         return;
     }
 
     printf("Processo: ");
-    for (uint32_t i=0;i<cpu->edx.e;i++) {
-        putchar(memoria[cpu->ecx.e + i]);
+    printf("\033[32m");
+	for (uint32_t i=0;i<cpu->edx.e;i++) {
+        putchar(memory[cpu->ecx.e + i]);
     }
-    printf("\n");
+    printf("\033[0m\n");
     
     cpu->eax.e = cpu->edx.e;
 }
 
-static void handle_exit(struct CPU *cpu, uint8_t *memoria) {
+static void handle_exit(struct CPU *cpu, uint8_t *memory) {
     printf("Processo terminou %d\n", cpu->ebx.e);
-    memoria[0] = 0xFF;
+    memory[0] = 0xFF;
 }
 
 void kernel_handle_syscall(struct CPU *cpu, uint8_t *memory) {
-    if (!kernel_inicializado) kernel_init();
+    if (!kernel_initialized) kernel_init();
     
     int syscall_num = cpu->eax.e;
     
