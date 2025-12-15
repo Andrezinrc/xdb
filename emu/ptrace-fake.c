@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "ptrace-fake.h"
+#include <stddef.h>
 #include <string.h>
 #include <errno.h>
 
@@ -11,7 +12,9 @@ static struct fake_process *proc_table[32];
 static int proc_count = 0;
 
 void fp_register(struct fake_process *p){
-    proc_table[proc_count++] = p;
+    if(proc_count < 32) {
+        proc_table[proc_count++] = p;
+    }
 }
 
 struct fake_process *fp_get(pid_t pid) {

@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include "cpu.h"
+#include "process.h"
 
 #define MAX_BREAKPOINTS 16
 
@@ -16,13 +17,6 @@ enum {
     PTRACE_SETREGS,
     PTRACE_PEEKDATA,
     PTRACE_POKEDATA
-};
-
-struct fake_process {
-    pid_t pid;
-    struct CPU cpu;
-    uint8_t *memory;
-    int stopped;
 };
 
 long fake_ptrace(int request, pid_t pid, void *addr, void *data);

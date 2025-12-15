@@ -27,14 +27,17 @@ int load_bin(const char *path, uint8_t *memory) {
 }
 
 static void run_program(struct CPU *cpu, uint8_t *memory) {
+    struct fake_process *proc = fp_get(FAKE_PID);
+    if (!proc) return;
+
     while (1) {
 
         /* syscall int 0x80 */
-        if (memory[cpu->eip] == 0xCD &&
-            memory[cpu->eip + 1] == 0x80) {
+        if (proc->memory[proc->cpu.eip] == 0xCD &&
+            proc->memory[proc->cpu.eip + 1] == 0x80) {
 
-            kernel_handle_syscall(cpu, memory);
-            cpu->eip += 2;
+            kernel_handle_syscall(proc);
+            proc->cpu.eip += 2;
             continue;
         }
 
@@ -44,9 +47,9 @@ static void run_program(struct CPU *cpu, uint8_t *memory) {
             break;
         }
 
-        cpu_step(cpu, memory);
+        cpu_step(&proc->cpu, proc->memory);
 
-        if (cpu->eip >= MEM_SIZE || memory[cpu->eip] == 0xF4)
+        if (proc->cpu.eip >= MEM_SIZE || proc->memory[proc->cpu.eip] == 0xF4)
             break;
     }
 }
@@ -56,17 +59,20 @@ static void debugger_loop(struct CPU *cpu, uint8_t *memory) {
     struct Debugger dbg = {0};
 
     fake_ptrace(PTRACE_ATTACH, FAKE_PID, NULL, NULL);
-
+	
+    struct fake_process *proc = fp_get(FAKE_PID);
+    if (!proc) return;
+	
     while (1) {
-        fake_ptrace(PTRACE_GETREGS, FAKE_PID, NULL, cpu);
+        fake_ptrace(PTRACE_GETREGS, FAKE_PID, NULL, &proc->cpu);
 
         if (!dbg.running){
-            disassemble(memory, cpu->eip);
+            disassemble(proc->memory, proc->cpu.eip);
 
-            printf("EIP=%08X  EAX=%08X  ECX=%08X\n", cpu->eip, cpu->eax.e, cpu->ecx.e);
+            printf("EIP=%08X  EAX=%08X  ECX=%08X\n", proc->cpu.eip, proc->cpu.eax.e, proc->cpu.ecx.e);
 
             dbg_prompt(cmd, sizeof(cmd));
-            dbg_handle_cmd(&dbg, cmd, cpu, memory);
+            dbg_handle_cmd(&dbg, cmd, &proc->cpu, proc->memory);
 
             if (dbg.running == -1)
                 break;
@@ -74,29 +80,29 @@ static void debugger_loop(struct CPU *cpu, uint8_t *memory) {
 
         int idx = bp_check(cpu);
         if (idx >= 0) {
-            printf("Breakpoint atingido em 0x%X\n", cpu->eip);
-            bp_clear(cpu->eip, memory);
-            cpu->eip--;
+            printf("Breakpoint atingido em 0x%X\n", proc->cpu.eip);
+            bp_clear(proc->cpu.eip, proc->memory);
+            proc->cpu.eip--;
             dbg.running = 0;
             continue;
         }
 
         fake_ptrace(PTRACE_SINGLESTEP, FAKE_PID, NULL, NULL);
 
-        if (memory[cpu->eip] == 0xCD &&
-            memory[cpu->eip + 1] == 0x80) {
+        if (proc->memory[proc->cpu.eip] == 0xCD &&
+            proc->memory[proc->cpu.eip + 1] == 0x80) {
 
-            kernel_handle_syscall(cpu, memory);
-            cpu->eip += 2;
+            kernel_handle_syscall(proc);
+            proc->cpu.eip += 2;
             continue;
         }
 
-        if (memory[0] == 0xFF){
+        if (proc->memory[0] == 0xFF){
             printf("\nProcesso terminado via syscall exit\n");
             break;
         }
 
-        if (cpu->eip >= MEM_SIZE || memory[cpu->eip] == 0xF4)
+        if (proc->cpu.eip >= MEM_SIZE || proc->memory[proc->cpu.eip] == 0xF4)
             break;
     }
 }

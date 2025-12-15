@@ -18,7 +18,7 @@ static void handle_write(struct CPU *cpu, uint8_t *memory) {
 
     printf("Processo: ");
     printf("\033[32m");
-	for (uint32_t i=0;i<cpu->edx.e;i++) {
+    for (uint32_t i=0;i<cpu->edx.e;i++) {
         putchar(memory[cpu->ecx.e + i]);
     }
     printf("\033[0m\n");
@@ -31,9 +31,11 @@ static void handle_exit(struct CPU *cpu, uint8_t *memory) {
     memory[0] = 0xFF;
 }
 
-void kernel_handle_syscall(struct CPU *cpu, uint8_t *memory) {
+void kernel_handle_syscall(struct fake_process *proc) {
     if (!kernel_initialized) kernel_init();
-    
+	
+    struct CPU *cpu = &proc->cpu;
+    uint8_t *memory = proc->memory;
     int syscall_num = cpu->eax.e;
     
     KDEBUG("Syscall %d em EIP=0x%08X\n", syscall_num, cpu->eip);
@@ -46,7 +48,9 @@ void kernel_handle_syscall(struct CPU *cpu, uint8_t *memory) {
         case SYS_WRITE:
             handle_write(cpu, memory);
             break;
-            
+        case SYS_GETPID:
+            cpu->eax.e = proc->pid;
+            break;
         default:
             KDEBUG("Syscall %d não implementada\n", syscall_num);
             cpu->eax.e = -1;
