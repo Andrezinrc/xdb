@@ -1,4 +1,4 @@
-adr86
+# adr86
 
 Emulador educacional de CPU x86 em C.
 

@@ -132,12 +132,9 @@ int main(int argc, char **argv){
         return 1;
     }
     
-    char *msg = "Ola mundo!";
-    memcpy(memory + 0x1000, msg, strlen(msg)); 
-    fake_ptrace(PTRACE_ATTACH, 1337, NULL, NULL);
-    
+       
     static struct fake_process proc;
-    proc.pid = 1337;
+    proc.pid = FAKE_PID;
     proc.cpu = cpu;
     proc.memory = memory;
     proc.stopped = 0;
