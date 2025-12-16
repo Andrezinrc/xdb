@@ -33,7 +33,7 @@ void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *m
         return;
     }
 
-    if (cmd[0] == 's') {/* step */}
+    if (cmd[0] == 's')
     if (cmd[0] == 'h') {
         dbg_help();
         return;

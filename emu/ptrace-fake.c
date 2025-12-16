@@ -24,6 +24,7 @@ struct fake_process *fp_get(pid_t pid) {
     return NULL;
 }
 
+// Implementação fake do ptrace(2) do Linux
 long fake_ptrace(int request, pid_t pid, void *addr, void *data) {
     struct fake_process *p = fp_get(pid);
     if(!p) return -ESRCH;
@@ -74,7 +75,7 @@ void bp_set(uint32_t addr, uint8_t *memory) {
         if (!breakpoints[i].active) {
             breakpoints[i].addr = addr;
             breakpoints[i].orig_byte = memory[addr];
-            memory[addr] = 0xCC; // INT3
+            memory[addr] = 0xCC; // INT3 - breakpoint de software
             breakpoints[i].active = 1;
             printf("Breakpoint definido em 0x%X\n", addr);
             return;
