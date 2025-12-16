@@ -42,10 +42,7 @@ static void run_program(struct CPU *cpu, uint8_t *memory) {
         }
 
         /* syscall exit */
-        if (memory[0] == 0xFF) {
-            printf("\nProcesso terminado via syscall exit\n");
-            break;
-        }
+        if (memory[0] == 0xFF) { break; }
 
         cpu_step(&proc->cpu, proc->memory);
 

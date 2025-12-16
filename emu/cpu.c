@@ -46,7 +46,7 @@ void update_add_flags(struct CPU* cpu, uint32_t a, uint32_t b, uint32_t res){
     uint32_t sa = (uint32_t)a;
     uint32_t sb = (uint32_t)b;
     uint32_t sr = (uint32_t)res;
-	cpu->flags.OF = ((sa ^ sr) & (sb ^ sr)) < 0;
+    cpu->flags.OF = ((sa ^ sr) & (sb ^ sr)) < 0;
 }
 
 
@@ -195,20 +195,22 @@ void cpu_step(struct CPU *cpu, uint8_t *memory) {
                 ret(memory, cpu);
                 break;
             }
-        
-            case 0x8B: { // MOV r32, r/m32
-                uint8_t modrm = mem_read8(memory, cpu->eip + 1);
-                if(modrm == 0xC1){ // mov eax, ecx
-                    cpu->eax.e = cpu->ecx.e;
-                    cpu->eip += 2;
-                } else if(modrm == 0xC8){ // mov ecx, eax
-                    cpu->ecx.e = cpu->eax.e;
-                    cpu->eip += 2;
-                } else {
-                    printf("MOV (8B) modrm nao suportado: %02X\n", modrm);
-                    exit(1);
+            
+			 /* Opcodes MOV r32, r/m3 */
+            case 0x8B: {
+                uint8_t modrm = mem_read8(memory,cpu->eip + 1);
+                uint8_t reg, rm;
+                if(!modrm_reg_reg(modrm, &reg, &rm)){
+                    printf("MOV mem nao suportado: %02X\n", modrm);
+					  exit(1);
                 }
-                break;
+				  
+				  uint32_t *dst = get_reg32(cpu, reg);
+				  uint32_t *src = get_reg32(cpu, rm);
+				  
+				  *dst = *src;
+				  cpu->eip += 2;
+				  break;
             }
         
         
