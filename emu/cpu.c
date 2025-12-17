@@ -310,9 +310,12 @@ void cpu_step(struct CPU *cpu, uint8_t *memory) {
        
        
             default:
-                printf("Opcode desconhecido em EIP=0x%08X: 0x%02X\n",
-                   cpu->eip, opcode);
-                exit(1);
+                if(opcode == 0x00) {
+                    return;
+                } else {
+                    printf("Opcode desconhecido em EIP=0x%08X: 0x%02X\n", cpu->eip, opcode);
+                    exit(1);
+                }
         }
     }
 }
