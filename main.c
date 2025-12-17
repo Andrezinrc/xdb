@@ -46,8 +46,7 @@ static void run_program(struct CPU *cpu, uint8_t *memory) {
 
         cpu_step(&proc->cpu, proc->memory);
 
-        if (proc->cpu.eip >= MEM_SIZE || proc->memory[proc->cpu.eip] == 0xF4)
-            break;
+        if (proc->cpu.eip >= MEM_SIZE || proc->memory[proc->cpu.eip] == 0xF4) { break; }
     }
 }
 
@@ -79,7 +78,6 @@ static void debugger_loop(struct CPU *cpu, uint8_t *memory) {
         if (idx >= 0) {
             printf("Breakpoint atingido em 0x%X\n", proc->cpu.eip);
             bp_clear(proc->cpu.eip, proc->memory);
-            proc->cpu.eip--;
             dbg.running = 0;
             continue;
         }
