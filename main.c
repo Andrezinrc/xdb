@@ -42,7 +42,7 @@ static void run_program(struct CPU *cpu, uint8_t *memory) {
         }
 
         /* syscall exit */
-        if (memory[0] == 0xFF) { break; }
+        if (proc->memory[0] == 0xFF) { break; }
 
         cpu_step(&proc->cpu, proc->memory);
 
@@ -75,7 +75,7 @@ static void debugger_loop(struct CPU *cpu, uint8_t *memory) {
                 break;
         }
 
-        int idx = bp_check(cpu);
+        int idx = bp_check(&proc->cpu);
         if (idx >= 0) {
             printf("Breakpoint atingido em 0x%X\n", proc->cpu.eip);
             bp_clear(proc->cpu.eip, proc->memory);
@@ -94,10 +94,7 @@ static void debugger_loop(struct CPU *cpu, uint8_t *memory) {
             continue;
         }
 
-        if (proc->memory[0] == 0xFF){
-            printf("\nProcesso terminado via syscall exit\n");
-            break;
-        }
+        if (proc->memory[0] == 0xFF) { break; }
 
         if (proc->cpu.eip >= MEM_SIZE || proc->memory[proc->cpu.eip] == 0xF4)
             break;
