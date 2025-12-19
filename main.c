@@ -30,7 +30,7 @@ static void run_program(struct CPU *cpu, uint8_t *memory) {
     struct fake_process *proc = fp_get(FAKE_PID);
     if (!proc) return;
 
-    while (1) {
+    for(;;) {
 
         /* syscall int 0x80 */
         if (proc->memory[proc->cpu.eip] == 0xCD &&
@@ -59,7 +59,7 @@ static void debugger_loop(struct CPU *cpu, uint8_t *memory) {
     struct fake_process *proc = fp_get(FAKE_PID);
     if (!proc) return;
 	
-    while (1) {
+    for(;;) {
         fake_ptrace(PTRACE_GETREGS, FAKE_PID, NULL, &proc->cpu);
 
         if (!dbg.running){
@@ -102,9 +102,11 @@ static void debugger_loop(struct CPU *cpu, uint8_t *memory) {
 
 int main(int argc, char **argv){
     if (argc<3) {
+        printf("\033[2J\033[H");
+        printf("\033[36mEmulador x86 32-bit (educacional)\033[0m\n");
         printf("Uso:\n");
-        printf("  %s debug <program.bin>\n", argv[0]);
-        printf("  %s run   <program.bin>\n", argv[0]);
+        printf("  %s debug <program.bin>   # Executa programa\n", argv[0]);
+        printf("  %s run   <program.bin>   # Executa com debugger\n", argv[0]);
         return 1;
     }
 
