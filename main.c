@@ -80,7 +80,7 @@ static void debugger_loop(struct fake_process *proc) {
 int main(int argc, char **argv){
     if (argc<3) {
         printf("\033[2J\033[H");
-        printf("\033[36m[x86 Debug Lab v0.1]\033[0m\n");
+        printf("\033[36m[adr86 - Lab v0.1]\033[0m\n");
         printf("Commands:\n");
         printf("  %s debug <program.bin>    # Interactive debugger\n", argv[0]);
         printf("  %s run   <program.bin>    # Run program until exit\n", argv[0]);

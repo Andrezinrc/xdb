@@ -17,19 +17,51 @@
 #include "kernel/kernel.h"
 #include "dbg.h"
 
-uint32_t *get_reg32(struct CPU *cpu, int index) {
-    switch(index) {
-        case 0: return &cpu->eax.e;
-        case 1: return &cpu->ecx.e;
-        case 2: return &cpu->edx.e;
-        case 3: return &cpu->ebx.e;
-        case 4: return &cpu->esp.e;
-        case 5: return &cpu->ebp.e;
-        case 6: return &cpu->esi.e;
-        case 7: return &cpu->edi.e;
-        default: return NULL;
+#define MAKE_OP(base, OP_NAME) \
+    case base+0x0: { /* reg8, modrm8 */ \
+        uint8_t modrm = mem_read8(memory, cpu->eip+1); \
+        uint8_t reg, rm; \
+        if(!modrm_reg_reg(modrm, &reg, &rm)){ printf("Mem não suportada\n"); exit(1); } \
+        OP_NAME(cpu, get_reg(cpu, rm, 8), get_reg(cpu, reg, 8), 8); \
+        cpu->eip += 2; \
+        break; \
+    } \
+    case base+0x1: { /* reg32, modrm32 */ \
+        uint8_t modrm = mem_read8(memory, cpu->eip+1); \
+        uint8_t reg, rm; \
+        if(!modrm_reg_reg(modrm, &reg, &rm)){ printf("Mem não suportada\n"); exit(1); } \
+        OP_NAME(cpu, get_reg(cpu, rm, 32), get_reg(cpu, reg, 32), 32); \
+        cpu->eip += 2; \
+        break; \
+    } \
+    case base+0x2: { /* modrm8, reg8 */ \
+        uint8_t modrm = mem_read8(memory, cpu->eip+1); \
+        uint8_t reg, rm; \
+        if(!modrm_reg_reg(modrm, &reg, &rm)){ printf("Mem não suportada\n"); exit(1); } \
+        OP_NAME(cpu, get_reg(cpu, reg, 8), get_reg(cpu, rm, 8), 8); \
+        cpu->eip += 2; \
+        break; \
+    } \
+    case base+0x3: { /* modrm32, reg32 */ \
+        uint8_t modrm = mem_read8(memory, cpu->eip+1); \
+        uint8_t reg, rm; \
+        if(!modrm_reg_reg(modrm, &reg, &rm)){ printf("Mem não suportada\n"); exit(1); } \
+        OP_NAME(cpu, get_reg(cpu, reg, 32), get_reg(cpu, rm, 32), 32); \
+        cpu->eip += 2; \
+        break; \
+    } \
+    case base+0x4: { /* imm8, AL */ \
+        uint8_t imm = mem_read8(memory, cpu->eip+1); \
+        OP_NAME(cpu, &cpu->eax.l, &imm, 8); \
+        cpu->eip += 2; \
+        break; \
+    } \
+    case base+0x5: { /* imm32, EAX */ \
+        uint32_t imm = mem_read32(memory, cpu->eip+1); \
+        OP_NAME(cpu, &cpu->eax.e, &imm, 32); \
+        cpu->eip += 5; \
+        break; \
     }
-}
 
 void cpu_init(struct CPU *cpu, uint32_t mem_size) {
     memset(cpu, 0, sizeof(struct CPU));
@@ -55,299 +87,128 @@ void update_sub_flags(struct CPU *cpu, uint32_t a, uint32_t b, uint32_t res) {
     cpu->flags.OF = (((int32_t)a ^ (int32_t)b) & ((int32_t)a ^ (int32_t)res)) >> 31;
 }
 
+void* get_reg(struct CPU *cpu, int index, int size){
+    if(size == 8){
+        switch(index){
+            case 0: return &cpu->eax.l;  // AL
+            case 1: return &cpu->ecx.l;  // CL
+            case 2: return &cpu->edx.l;  // DL
+            case 3: return &cpu->ebx.l;  // BL
+            default: return NULL;
+        }
+    } else if(size == 32){
+        switch(index){
+            case 0: return &cpu->eax.e;
+            case 1: return &cpu->ecx.e;
+            case 2: return &cpu->edx.e;
+            case 3: return &cpu->ebx.e;
+            case 4: return &cpu->esp.e;
+            case 5: return &cpu->ebp.e;
+            case 6: return &cpu->esi.e;
+            case 7: return &cpu->edi.e;
+            default: return NULL;
+        }
+    }
+    return NULL;
+}
+
+void op_add(struct CPU *cpu, void *dst, void *src, int size){
+    if(size==8){
+        uint8_t *d=(uint8_t*)dst, *s=(uint8_t*)src;
+        uint8_t res = *d + *s;
+        cpu->flags.ZF = (res==0);
+        cpu->flags.SF = (res>>7)&1;
+        *d=res;
+    } else {
+        uint32_t *d=(uint32_t*)dst, *s=(uint32_t*)src;
+        uint32_t res = *d + *s;
+        update_add_flags(cpu, *d, *s, res);
+        *d=res;
+    }
+}
+
+void op_sub(struct CPU *cpu, void *dst, void *src, int size){
+    if(size==8){
+        uint8_t *d=(uint8_t*)dst, *s=(uint8_t*)src;
+        uint8_t res = *d - *s;
+        cpu->flags.ZF = (res==0);
+        cpu->flags.SF = (res>>7)&1;
+        *d=res;
+    } else {
+        uint32_t *d=(uint32_t*)dst, *s=(uint32_t*)src;
+        uint32_t res = *d - *s;
+        update_sub_flags(cpu, *d, *s, res);
+        *d=res;
+    }
+}
+
+void op_mov(struct CPU *cpu, void *dst, void *src, int size){
+    if(size==8) *(uint8_t*)dst = *(uint8_t*)src;
+    else *(uint32_t*)dst = *(uint32_t*)src;
+}
+
+void op_xor(struct CPU *cpu, void *dst, void *src, int size){
+    if(size==8) *(uint8_t*)dst ^= *(uint8_t*)src;
+    else *(uint32_t*)dst ^= *(uint32_t*)src;
+    update_ZF_SF(cpu, *(uint32_t*)dst);
+}
+
+void op_cmp(struct CPU *cpu, void *dst, void *src, int size){
+    if(size==8){
+        uint8_t res = *(uint8_t*)dst - *(uint8_t*)src;
+        cpu->flags.ZF = (res==0);
+        cpu->flags.SF = (res>>7)&1;
+    } else {
+        uint32_t res = *(uint32_t*)dst - *(uint32_t*)src;
+        update_sub_flags(cpu, *(uint32_t*)dst, *(uint32_t*)src, res);
+    }
+}
 
 void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
     uint8_t opcode = mem_read8(memory, cpu->eip);
-   
-    /* Opcodes MOV r32, imm32 */
+
+    /* MOV r32, imm32 */
     if(opcode >= 0xB8 && opcode <= 0xBF){
-        uint32_t imm = mem_read32(memory, cpu->eip + 1);
-        uint32_t *reg = get_reg32(cpu, opcode - 0xB8);
-        if (reg) { *reg = imm; }
+        uint32_t imm = mem_read32(memory, cpu->eip+1);
+        uint32_t *reg = get_reg(cpu, opcode-0xB8, 32);
+        if(reg) *reg = imm;
         cpu->eip += 5;
-    } else {
-        switch (opcode) {
-            /* Opcodes MOV r/m32, r32 */
-            case 0x89: {
-                uint8_t modrm = mem_read8(memory, cpu->eip + 1);
-                uint8_t reg,rm;
-				
-                if(!modrm_reg_reg(modrm, &reg, &rm)){
-                    printf("MOV mem nao suportado: %02X\n", modrm);
-                    exit(1);
-                }
-                
-                uint32_t *dst = get_reg32(cpu, rm);
-                uint32_t *src = get_reg32(cpu, reg);
-				
-                *dst = *src;
-                cpu->eip += 2;
-                break;
-            }
-        
-            case 0x05: { // ADD EAX, imm32
-                uint32_t imm = mem_read32(memory, cpu->eip + 1);
-                uint32_t a = cpu->eax.e;
-                uint32_t res = a + imm;
-                cpu->eax.e = res;
-                update_add_flags(cpu, a, imm, res);
-                cpu->eip += 5;
-                break;
-            }
-        
-		     /* Opcodes ADD r/m32, r32 */
-            case 0x01: {
-                uint8_t modrm = mem_read8(memory, cpu->eip + 1);
-                uint8_t reg, rm;
-				
-                if(!modrm_reg_reg(modrm, &reg, &rm)){
-                    printf("ADD mem nao suportado em EIP=0x%X: %02X\n", cpu->eip, modrm);
-                    exit(1);
-                }
-                
-                uint32_t *dst = get_reg32(cpu, rm);
-                uint32_t src = *get_reg32(cpu, reg);
-                
-                uint32_t old = *dst;
-                uint32_t res = old + src;
-                
-                update_add_flags(cpu, old, src, res);
-                *dst = res;
-                cpu->eip += 2;
-                break;
-            }
-        
-		     /* Opcodes SUB r/m32, r32 */
-            case 0x29: {
-                uint8_t modrm = mem_read8(memory, cpu->eip + 1);
-                uint8_t reg,rm;
-                
-                if(!modrm_reg_reg(modrm, &reg, &rm)){
-                    printf("SUB mem nao suportado em EIP=0x%X: %02X\n", cpu->eip, modrm);
-                    exit(1);
-                }
-                
-                uint32_t a = *get_reg32(cpu, rm);
-                uint32_t b = *get_reg32(cpu, reg);
-                uint32_t res = a - b;
-                
-                update_sub_flags(cpu, a, b, res);
-                *get_reg32(cpu, rm) = res;
-                cpu->eip += 2;
-                break;
-            }
-        
-            case 0x40: { // INC EAX
-                uint32_t res = cpu->eax.e + 1;
-                update_ZF_SF(cpu, res);
-                cpu->eax.e = res;
-                cpu->eip += 1;
-                break;
-            }
-        
-            case 0x48: { // DEC EAX
-                uint32_t res = cpu->eax.e - 1;
-                update_ZF_SF(cpu, res);
-                cpu->eax.e = res;
-                cpu->eip += 1;
-                break;
-            }
-        
-        
-            /* Opcodes CMP r/m32, r32 */
-            case 0x39: {
-                uint8_t modrm = mem_read8(memory, cpu->eip + 1);
-                uint8_t reg, rm;
-                
-                if(!modrm_reg_reg(modrm, &reg, &rm)){
-                    printf("CMP mem nao suportado: %02X\n", modrm);
-                    exit(1);
-                }
-                
-                uint32_t a = *get_reg32(cpu, rm);
-                uint32_t b = *get_reg32(cpu, reg);
-                uint32_t res = a - b;
-                
-                update_sub_flags(cpu, a, b, res);
-                cpu->eip += 2;
-                break;
-			 }
-        
-        
-            case 0x74: { // JE/JZ rel8
-                uint8_t offset = mem_read8(memory, cpu->eip + 1);
-                if(cpu->flags.ZF) cpu->eip += offset + 2;
-                else cpu->eip += 2;
-                break;
-            }
-        
-            case 0x75: { // JNE/JNZ rel8
-                uint8_t offset = mem_read8(memory, cpu->eip + 1);
-                if(!cpu->flags.ZF) cpu->eip += offset + 2;
-                else cpu->eip += 2;
-                break;
-            }
-        
-            case 0x50: { // PUSH EAX
-                push32(memory, cpu, cpu->eax.e);
-                cpu->eip += 1;
-                break;
-            }
-        
-            case 0x58: { // POP EAX
-                cpu->eax.e = pop32(memory, cpu);
-                cpu->eip += 1;
-                break;
-            }
-        
-            case 0xE8: { // CALL rel32
-                int32_t rel = mem_read32(memory, cpu->eip + 1);
-                call_rel32(memory, cpu, rel);
-                break;
-            }
-        
-            case 0xC3: { // RET
-                ret(memory, cpu);
-                break;
-            }
-            
-            /* Opcode MOV r32, r/m32 */
-            case 0x8B: {
-                uint8_t modrm = mem_read8(memory,cpu->eip + 1);
-                uint8_t reg, rm;
-                if(!modrm_reg_reg(modrm, &reg, &rm)){
-                    printf("MOV mem nao suportado: %02X\n", modrm);
-                    exit(1);
-                }
-                
-                uint32_t *dst = get_reg32(cpu, reg);
-                uint32_t *src = get_reg32(cpu, rm);
-				
-                *dst = *src;
-                cpu->eip += 2;
-                break;
-            }
-        
-        
-		     /* Opcodes XOR r/m32, r32 */
-            case 0x31: {
-                uint8_t modrm = mem_read8(memory, cpu->eip + 1);
-                uint8_t reg,rm;
-				  
-                if(!modrm_reg_reg(modrm, &reg, &rm)){
-                    printf("XOR mem nao suportado: %02X\n", modrm);
-                    exit(1);
-                }
-				  
-                uint32_t *dst = get_reg32(cpu, rm);
-                uint32_t *src = get_reg32(cpu, reg);
-                *dst ^= *src;
-				  
-                update_ZF_SF(cpu, *dst);
-                cpu->flags.ZF = 0;
-                cpu->flags.SF = 0;
-                cpu->eip += 2;
-                break;
-            }
-        
-		     /* Opcodes 83 r/m32, imm8 (ADD/SUB/CMP) */
-            case 0x83: {
-                uint8_t modrm = mem_read8(memory, cpu->eip + 1);
-                int8_t imm = mem_read8(memory, cpu->eip + 2);
-				
-                uint8_t mod = modrm >> 6;
-                uint8_t reg = (modrm >> 3) & 7;
-                uint8_t rm = modrm & 7;
+        return;
+    }
 
-                if(mod!=3){
-                    printf("83 memoria nao suportado: %02X\n", modrm);
-                    exit(1);
-                }
-                uint32_t *dst = get_reg32(cpu, rm);
-                switch(reg){
-                    case 0: { // ADD
-                        uint32_t res = *dst + imm;
-                        update_add_flags(cpu, *dst, imm, res);
-                        *dst = res;
-                        break;
-                    }
-                    case 5: { // SUB
-                        uint32_t res = *dst - imm;
-                        update_sub_flags(cpu, *dst, imm, res);
-                        *dst = res;
-                        break;
-                    }
-                    case 7: { // CMP
-                        uint32_t res = *dst - imm;
-                        update_sub_flags(cpu, *dst, imm, res);
-                        break;
-                    }
-                    default:
-                        printf("83 reg nao suportado: %02X\n", reg);
-                        exit(1);
-                }
-				
-				cpu->eip += 3;
-				break;
-            }
-        
-            case 0xEB: { // JMP rel8
-                int8_t rel = mem_read8(memory, cpu->eip + 1);
-                cpu->eip += rel + 2;
-                break;
-            }
-			
-            case 0xE9: { // JMP rel32
-                int32_t rel = mem_read32(memory, cpu->eip + 1);
-                cpu->eip += rel + 5;
-                break;
-            }
-        
-            case 0x90: { // NOP
-                cpu->eip += 1;
-                break;
-            }
-            case 0xF8: { // CLC
-                cpu->flags.CF = 0;
-                cpu->eip += 1;
-                break;
-            }
-	   
+    switch(opcode){
+        MAKE_OP(0x00, op_add) // ADD
+        MAKE_OP(0x08, op_mov) // MOV
+        MAKE_OP(0x18, op_sub) // SUB
+        MAKE_OP(0x30, op_xor) // XOR
+        MAKE_OP(0x38, op_cmp) // CMP
 
-            case 0xCD: { // INT n
-                uint8_t num = mem_read8(memory, cpu->eip + 1);
-                
-                if(num == 0x80){
-                    /* DEBUG: trace syscall */
-                    if(cpu->debug_mode){
-                        dbg_trace_syscall(cpu);
-                    }
- 
-                   if(cpu->eax.e == 1) { // SYS_EXIT
-                        if(proc){
-                            proc->alive = 0;
-                        }
-                    } else {
-                        kernel_handle_syscall(proc);
-                    }
-                }
-                cpu->eip += 2;
-                break;
+        case 0x90: cpu->eip+=1; break; // NOP
+        case 0xE9: { int32_t rel = mem_read32(memory, cpu->eip+1); cpu->eip += rel+5; break; }
+        case 0xEB: { int8_t rel = mem_read8(memory, cpu->eip+1); cpu->eip += rel+2; break; }
+
+        case 0x50: push32(memory, cpu, cpu->eax.e); cpu->eip+=1; break;
+        case 0x58: cpu->eax.e = pop32(memory, cpu); cpu->eip+=1; break;
+
+        case 0xE8: { int32_t rel = mem_read32(memory, cpu->eip+1); call_rel32(memory, cpu, rel); break; }
+        case 0xC3: ret(memory, cpu); break;
+
+        case 0xF8: cpu->flags.CF=0; cpu->eip+=1; break; // CLC
+        case 0xCD: { // INT n
+            uint8_t num = mem_read8(memory, cpu->eip+1);
+            if(num==0x80){
+                if(cpu->debug_mode) dbg_trace_syscall(cpu);
+                if(cpu->eax.e==1 && proc) proc->alive=0;
+                else kernel_handle_syscall(proc);
             }
-   
-            case 0xF4: {
-                printf("Encerrando.\n");
-                exit(1);
-            }
-       
-       
-            default:
-                if(opcode == 0x00) {
-                    return;
-                } else {
-                    printf("Opcode desconhecido em EIP=0x%08X: 0x%02X\n", cpu->eip, opcode);
-                    exit(1);
-                }
+            cpu->eip+=2;
+            break;
         }
+        case 0xF4: printf("Encerrando.\n"); exit(0); break;
+
+        default:
+            if(opcode==0x00) return;
+            printf("Opcode desconhecido em EIP=0x%08X: 0x%02X\n", cpu->eip, opcode);
+            exit(1);
     }
 }
