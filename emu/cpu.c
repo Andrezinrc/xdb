@@ -17,6 +17,15 @@
 #include "kernel/kernel.h"
 #include "dbg.h"
 
+#define HANDLE_MOV_IMM32 \
+    case 0xB8: case 0xB9: case 0xBA: case 0xBB: \
+    case 0xBC: case 0xBD: case 0xBE: case 0xBF: { \
+        uint32_t imm = mem_read32(memory, cpu->eip + 1); \
+        uint32_t *reg = get_reg(cpu, opcode - 0xB8, 32); \
+        *reg = imm; \
+        cpu->eip += 5; \
+        break; \
+    }
 #define MAKE_OP(base, OP_NAME) \
     case base+0x0: { /* reg8, modrm8 */ \
         uint8_t modrm = mem_read8(memory, cpu->eip+1); \
@@ -167,18 +176,10 @@ void op_cmp(struct CPU *cpu, void *dst, void *src, int size){
 void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
     uint8_t opcode = mem_read8(memory, cpu->eip);
 
-    /* MOV r32, imm32 */
-    if(opcode >= 0xB8 && opcode <= 0xBF){
-        uint32_t imm = mem_read32(memory, cpu->eip+1);
-        uint32_t *reg = get_reg(cpu, opcode-0xB8, 32);
-        if(reg) *reg = imm;
-        cpu->eip += 5;
-        return;
-    }
-
     switch(opcode){
+        HANDLE_MOV_IMM32
         MAKE_OP(0x00, op_add) // ADD
-        MAKE_OP(0x08, op_mov) // MOV
+        MAKE_OP(0x88, op_mov) // MOV
         MAKE_OP(0x18, op_sub) // SUB
         MAKE_OP(0x30, op_xor) // XOR
         MAKE_OP(0x38, op_cmp) // CMP

@@ -93,13 +93,14 @@ void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *m
 
     if (cmd[0] == 'r') {
         char reg[8];
-        int val;
-        sscanf(cmd, "r %s %d", reg, &val);
+        uint32_t val;
+        sscanf(cmd, "r %s %x", reg, &val);
 
         fake_ptrace(PTRACE_GETREGS, 1337, NULL, cpu);
 
         if (strcmp(reg, "eax") == 0) cpu->eax.e = val;
         else if (strcmp(reg, "ecx") == 0) cpu->ecx.e = val;
+        else if (strcmp(reg, "eip") == 0) cpu->eip = val;
 
         fake_ptrace(PTRACE_SETREGS, 1337, NULL, cpu);
         return;
