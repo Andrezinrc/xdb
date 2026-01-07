@@ -232,6 +232,51 @@ void disassemble(uint8_t *memory, uint32_t eip) {
             printf("    call 0x%08X\n", eip + instr_len + rel);
             break;
         }
+        
+        /* INC/DEC EAX */
+        case 0x40: 
+            print_bytes(memory, eip, 1);
+            printf("    inc eax\n");
+            break;
+        
+        case 0x48:
+            print_bytes(memory, eip, 1);
+            printf("    dec eax\n");
+            break;
+        
+        /* FE C0 / FE C8 - INC/DEC AL */
+        case 0xFE: {
+            uint8_t subop = memory[eip + 1];
+            instr_len = 2;
+            print_bytes(memory, eip, instr_len);
+            
+            if(subop == 0xC0)
+                printf("    inc al\n");
+            else if(subop == 0xC8)
+                printf("    dec al\n");
+            else
+                printf("    db 0xFE, 0x%02X ; Unknown\n", subop);
+            break;
+        }
+        
+        /* MOV AL, imm8 (B0) até MOV BL, imm8 (B3) */
+        case 0xB0: case 0xB1: case 0xB2: case 0xB3: {
+            instr_len = 2;
+            print_bytes(memory, eip, instr_len);
+            uint8_t imm = memory[eip + 1];
+            const char *reg;
+            
+            switch(op) {
+                case 0xB0: reg = "al"; break;
+                case 0xB1: reg = "cl"; break;
+                case 0xB2: reg = "dl"; break;
+                case 0xB3: reg = "bl"; break;
+                default: reg = "??";
+            }
+            
+            printf("    mov %s, %u\n", reg, imm);
+            break;
+        }
 
         // RET
         case 0xC3: print_bytes(memory, eip, 1); printf("    ret\n"); break;

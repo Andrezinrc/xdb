@@ -313,7 +313,62 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
     switch(opcode){
         HANDLE_MOV_IMM32
 		
+        /* INC/DEC EAX */
+        case 0x40: { cpu->eax.e++; update_ZF_SF(cpu, cpu->eax.e); cpu->eip += 1; break; } // INC EAX
+        case 0x48: { cpu->eax.e--; update_ZF_SF(cpu, cpu->eax.e); cpu->eip += 1; break; } // DEC EAX
+        
+        /* INC/DEC */
+        case 0xFE: {
+            uint8_t subop = mem_read8(memory, cpu->eip + 1);
+            if(subop == 0xC0) { // INC AL
+                cpu->eax.l++;
+                update_ZF_SF(cpu, cpu->eax.l);
+                cpu->eip += 2;
+                break;
+            }
+            if(subop == 0xC8) { // DEC AL
+                cpu->eax.l--;
+                update_ZF_SF(cpu, cpu->eax.l);
+                cpu->eip += 2;
+                break;
+            }
+            printf("Subopcode FE desconhecido: 0x%02X\n", subop);
+            exit(1);
+        }
+     		
         HANDLE_MOV(0x88)
+        
+        /* MOV AL, imm8 */
+        case 0xB0: {
+            uint8_t imm = mem_read8(memory, cpu->eip + 1);
+            cpu->eax.l = imm;
+            cpu->eip += 2;
+            break;
+        }
+        
+        /* MOV CL, imm8 */
+        case 0xB1: {
+            uint8_t imm = mem_read8(memory, cpu->eip + 1);
+            cpu->ecx.l = imm;
+            cpu->eip += 2;
+            break;
+        }
+        
+        /* MOV DL, imm8 */
+        case 0xB2: {
+            uint8_t imm = mem_read8(memory, cpu->eip + 1);
+            cpu->edx.l = imm;
+            cpu->eip += 2;
+            break;
+        }
+        
+        /* MOV BL, imm8 */
+        case 0xB3: {
+            uint8_t imm = mem_read8(memory, cpu->eip + 1);
+            cpu->ebx.l = imm;
+            cpu->eip += 2;
+            break;
+        }
 	
         MAKE_OP(0x00, op_add)
         MAKE_OP(0x18, op_sub)
