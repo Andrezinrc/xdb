@@ -60,7 +60,7 @@ static void debugger_loop(struct fake_process *proc) {
 
         int idx = bp_check(&proc->cpu);
         if (idx >= 0) {
-            printf("\033[1;36m=> \033[0m");
+            printf("\033[1;31m=> \033[0m");
             printf("Breakpoint atingido em 0x%X\n", proc->cpu.eip);
 
             bp_clear(proc->cpu.eip, proc->memory);

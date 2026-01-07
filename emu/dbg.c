@@ -135,7 +135,7 @@ void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *m
             count++;
         }
     
-        printf("%d byte(s) escritos\n", count);
+        printf("\033[36m%d byte(s) escritos\033[0m\n", count);
         return;
     }
     
@@ -190,6 +190,10 @@ void dbg_trace_syscall(struct CPU *cpu){
     switch (cpu->eax.e){
         case 1:
             printf("[syscall] exit(status=%d)\n", cpu->ebx.e);
+            break;
+        case 3:
+            printf("[syscall] read(fd=%d, buf=0x%X, len=%d)\n",
+                   cpu->ebx.e, cpu->ecx.e, cpu->edx.e);
             break;
         case 4:
             printf("[syscall] write(fd=%d, buf=0x%X, len=%d)\n",
