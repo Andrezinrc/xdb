@@ -91,7 +91,8 @@ static void print_header(struct fake_process *proc, int debug_mode){
            MEM_SIZE / 1024, 0x00000000, MEM_SIZE - 1);
     printf("Stack top: 0x%08X\n", proc->cpu.esp.e);
     printf("Entry point: 0x%08X\n", proc->cpu.eip);
-    printf("Mode: %s\n\n", debug_mode ? "DEBUG" : "RUN");
+    printf("Mode: %s\n", debug_mode ? "DEBUG" : "RUN");
+    printf("Feito por: \033[1;37mAndré Moreira\033[0m\n\n");
 }
 
 int main(int argc, char **argv){

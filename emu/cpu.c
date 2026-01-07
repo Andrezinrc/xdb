@@ -1,11 +1,6 @@
 /*
- * Intel 64 and IA-32 Architectures Software Developer’s Manual
+ * Intel 64 and IA-32 Architectures Software Developer's Manual
  * https://cdrdv2-public.intel.com/868139/325383-089-sdm-vol-2abcd.pdf
- */
- 
-
-/* Minimal ModRM support: only register-to-register forms (0xC0–0xC7).
- * Memory addressing via ModRM/SIB is intentionally not implemented yet.
  */
 
 #include <stdio.h>
@@ -26,37 +21,76 @@
         cpu->eip += 5; \
         break; \
     }
+
 #define MAKE_OP(base, OP_NAME) \
     case base+0x0: { /* reg8, modrm8 */ \
         uint8_t modrm = mem_read8(memory, cpu->eip+1); \
-        uint8_t reg, rm; \
-        if(!modrm_reg_reg(modrm, &reg, &rm)){ printf("Mem não suportada\n"); exit(1); } \
-        OP_NAME(cpu, get_reg(cpu, rm, 8), get_reg(cpu, reg, 8), 8); \
-        cpu->eip += 2; \
+        uint8_t mod = modrm >> 6; \
+        uint8_t reg = (modrm >> 3) & 7; \
+        uint8_t rm = modrm & 7; \
+        int has_sib = (mod != 3 && rm == 4); \
+        if (mod == 0x3){ \
+            OP_NAME(cpu, get_reg(cpu, rm, 8), get_reg(cpu, reg, 8), 8); \
+        } else { \
+            uint32_t mem_addr = modrm_mem_addr(cpu, memory, modrm); \
+            uint8_t mem_val = mem_read8(memory, mem_addr); \
+            OP_NAME(cpu, &mem_val, get_reg(cpu, reg, 8), 8); \
+            mem_write8(memory, mem_addr, mem_val); \
+        } \
+        cpu->eip += 2 + (has_sib ? 1 : 0); \
         break; \
     } \
     case base+0x1: { /* reg32, modrm32 */ \
         uint8_t modrm = mem_read8(memory, cpu->eip+1); \
-        uint8_t reg, rm; \
-        if(!modrm_reg_reg(modrm, &reg, &rm)){ printf("Mem não suportada\n"); exit(1); } \
-        OP_NAME(cpu, get_reg(cpu, rm, 32), get_reg(cpu, reg, 32), 32); \
-        cpu->eip += 2; \
+        uint8_t mod = modrm >> 6; \
+        uint8_t reg = (modrm >> 3) & 7; \
+        uint8_t rm = modrm & 7; \
+        int has_sib = (mod != 3 && rm == 4); \
+        if (mod == 0x3){ \
+            OP_NAME(cpu, get_reg(cpu, rm, 32), get_reg(cpu, reg, 32), 32); \
+        } else { \
+            uint32_t mem_addr = modrm_mem_addr(cpu, memory, modrm); \
+            uint32_t mem_val = mem_read32(memory, mem_addr); \
+            OP_NAME(cpu, &mem_val, get_reg(cpu, reg, 32), 32); \
+            mem_write32(memory, mem_addr, mem_val); \
+        } \
+        cpu->eip += 2 + (has_sib ? 1 : 0); \
         break; \
     } \
     case base+0x2: { /* modrm8, reg8 */ \
         uint8_t modrm = mem_read8(memory, cpu->eip+1); \
-        uint8_t reg, rm; \
-        if(!modrm_reg_reg(modrm, &reg, &rm)){ printf("Mem não suportada\n"); exit(1); } \
-        OP_NAME(cpu, get_reg(cpu, reg, 8), get_reg(cpu, rm, 8), 8); \
-        cpu->eip += 2; \
+        uint8_t mod = modrm >> 6; \
+        uint8_t reg = (modrm >> 3) & 7; \
+        uint8_t rm = modrm & 7; \
+        int has_sib = (mod != 3 && rm == 4); \
+        if (mod == 0x3){ \
+            OP_NAME(cpu, get_reg(cpu, reg, 8), get_reg(cpu, rm, 8), 8); \
+        } else { \
+            uint32_t mem_addr = modrm_mem_addr(cpu, memory, modrm); \
+            uint8_t mem_val = mem_read8(memory, mem_addr); \
+            uint8_t reg_val = *(uint8_t*)get_reg(cpu, reg, 8); \
+            OP_NAME(cpu, &reg_val, &mem_val, 8); \
+            mem_write8(memory, mem_addr, mem_val); \
+        } \
+        cpu->eip += 2 + (has_sib ? 1 : 0); \
         break; \
     } \
     case base+0x3: { /* modrm32, reg32 */ \
         uint8_t modrm = mem_read8(memory, cpu->eip+1); \
-        uint8_t reg, rm; \
-        if(!modrm_reg_reg(modrm, &reg, &rm)){ printf("Mem não suportada\n"); exit(1); } \
-        OP_NAME(cpu, get_reg(cpu, reg, 32), get_reg(cpu, rm, 32), 32); \
-        cpu->eip += 2; \
+        uint8_t mod = modrm >> 6; \
+        uint8_t reg = (modrm >> 3) & 7; \
+        uint8_t rm = modrm & 7; \
+        int has_sib = (mod != 3 && rm == 4); \
+        if (mod == 0x3){ \
+            OP_NAME(cpu, get_reg(cpu, reg, 32), get_reg(cpu, rm, 32), 32); \
+        } else { \
+            uint32_t mem_addr = modrm_mem_addr(cpu, memory, modrm); \
+            uint32_t mem_val = mem_read32(memory, mem_addr); \
+            uint32_t reg_val = *(uint32_t*)get_reg(cpu, reg, 32); \
+            OP_NAME(cpu, &reg_val, &mem_val, 32); \
+            mem_write32(memory, mem_addr, mem_val); \
+        } \
+        cpu->eip += 2 + (has_sib ? 1 : 0); \
         break; \
     } \
     case base+0x4: { /* imm8, AL */ \
@@ -69,6 +103,72 @@
         uint32_t imm = mem_read32(memory, cpu->eip+1); \
         OP_NAME(cpu, &cpu->eax.e, &imm, 32); \
         cpu->eip += 5; \
+        break; \
+    }
+    
+#define HANDLE_MOV(base) \
+    case base+0x0: { /* MOV reg8, modrm8 */ \
+        uint8_t modrm = mem_read8(memory, cpu->eip+1); \
+        uint8_t mod = modrm >> 6; \
+        uint8_t reg = (modrm >> 3) & 7; \
+        uint8_t rm = modrm & 7; \
+        int has_sib = (mod != 3 && rm == 4); \
+        if (mod == 0x3){ \
+            op_mov(cpu, get_reg(cpu, rm, 8), get_reg(cpu, reg, 8), 8); \
+        } else { \
+            uint32_t mem_addr = modrm_mem_addr(cpu, memory, modrm); \
+            uint8_t reg_val = *(uint8_t*)get_reg(cpu, reg, 8); \
+            mem_write8(memory, mem_addr, reg_val); \
+        } \
+        cpu->eip += 2 + (has_sib ? 1 : 0); \
+        break; \
+    } \
+    case base+0x1: { /* MOV reg32, modrm32 */ \
+        uint8_t modrm = mem_read8(memory, cpu->eip+1); \
+        uint8_t mod = modrm >> 6; \
+        uint8_t reg = (modrm >> 3) & 7; \
+        uint8_t rm = modrm & 7; \
+        int has_sib = (mod != 3 && rm == 4); \
+        if (mod == 0x3){ \
+            op_mov(cpu, get_reg(cpu, rm, 32), get_reg(cpu, reg, 32), 32); \
+        } else { \
+            uint32_t mem_addr = modrm_mem_addr(cpu, memory, modrm); \
+            uint32_t reg_val = *(uint32_t*)get_reg(cpu, reg, 32); \
+            mem_write32(memory, mem_addr, reg_val); \
+        } \
+        cpu->eip += 2 + (has_sib ? 1 : 0); \
+        break; \
+    } \
+    case base+0x2: { /* MOV modrm8, reg8 */ \
+        uint8_t modrm = mem_read8(memory, cpu->eip+1); \
+        uint8_t mod = modrm >> 6; \
+        uint8_t reg = (modrm >> 3) & 7; \
+        uint8_t rm = modrm & 7; \
+        int has_sib = (mod != 3 && rm == 4); \
+        if (mod == 0x3){ \
+            op_mov(cpu, get_reg(cpu, reg, 8), get_reg(cpu, rm, 8), 8); \
+        } else { \
+            uint32_t mem_addr = modrm_mem_addr(cpu, memory, modrm); \
+            uint8_t mem_val = mem_read8(memory, mem_addr); \
+            op_mov(cpu, get_reg(cpu, reg, 8), &mem_val, 8); \
+        } \
+        cpu->eip += 2 + (has_sib ? 1 : 0); \
+        break; \
+    } \
+    case base+0x3: { /* MOV modrm32, reg32 */ \
+        uint8_t modrm = mem_read8(memory, cpu->eip+1); \
+        uint8_t mod = modrm >> 6; \
+        uint8_t reg = (modrm >> 3) & 7; \
+        uint8_t rm = modrm & 7; \
+        int has_sib = (mod != 3 && rm == 4); \
+        if (mod == 0x3){ \
+            op_mov(cpu, get_reg(cpu, reg, 32), get_reg(cpu, rm, 32), 32); \
+        } else { \
+            uint32_t mem_addr = modrm_mem_addr(cpu, memory, modrm); \
+            uint32_t mem_val = mem_read32(memory, mem_addr); \
+            op_mov(cpu, get_reg(cpu, reg, 32), &mem_val, 32); \
+        } \
+        cpu->eip += 2 + (has_sib ? 1 : 0); \
         break; \
     }
 
@@ -89,7 +189,6 @@ void update_add_flags(struct CPU* cpu, uint32_t a, uint32_t b, uint32_t res){
     cpu->flags.OF = ((a ^ res) & (b ^ res)) >> 31;
 }
 
-
 void update_sub_flags(struct CPU *cpu, uint32_t a, uint32_t b, uint32_t res) {
     update_ZF_SF(cpu, res);
     cpu->flags.CF = (a < b);
@@ -103,6 +202,10 @@ void* get_reg(struct CPU *cpu, int index, int size){
             case 1: return &cpu->ecx.l;  // CL
             case 2: return &cpu->edx.l;  // DL
             case 3: return &cpu->ebx.l;  // BL
+            case 4: return &cpu->eax.h;  // AH
+            case 5: return &cpu->ecx.h;  // CH
+            case 6: return &cpu->edx.h;  // DH
+            case 7: return &cpu->ebx.h;  // BH
             default: return NULL;
         }
     } else if(size == 32){
@@ -127,6 +230,8 @@ void op_add(struct CPU *cpu, void *dst, void *src, int size){
         uint8_t res = *d + *s;
         cpu->flags.ZF = (res==0);
         cpu->flags.SF = (res>>7)&1;
+        cpu->flags.CF = (res < *d);
+        cpu->flags.OF = ((*d ^ res) & (*s ^ res)) >> 7;
         *d=res;
     } else {
         uint32_t *d=(uint32_t*)dst, *s=(uint32_t*)src;
@@ -142,6 +247,8 @@ void op_sub(struct CPU *cpu, void *dst, void *src, int size){
         uint8_t res = *d - *s;
         cpu->flags.ZF = (res==0);
         cpu->flags.SF = (res>>7)&1;
+        cpu->flags.CF = (*d < *s);
+        cpu->flags.OF = ((*d ^ *s) & (*d ^ res)) >> 7;
         *d=res;
     } else {
         uint32_t *d=(uint32_t*)dst, *s=(uint32_t*)src;
@@ -157,16 +264,27 @@ void op_mov(struct CPU *cpu, void *dst, void *src, int size){
 }
 
 void op_xor(struct CPU *cpu, void *dst, void *src, int size){
-    if(size==8) *(uint8_t*)dst ^= *(uint8_t*)src;
-    else *(uint32_t*)dst ^= *(uint32_t*)src;
-    update_ZF_SF(cpu, *(uint32_t*)dst);
+    if(size==8){
+        *(uint8_t*)dst ^= *(uint8_t*)src;
+        cpu->flags.ZF = (*(uint8_t*)dst == 0);
+        cpu->flags.SF = (*(uint8_t*)dst >> 7) & 1;
+    } else {
+        *(uint32_t*)dst ^= *(uint32_t*)src;
+        update_ZF_SF(cpu, *(uint32_t*)dst);
+    }
+    cpu->flags.CF = 0;
+    cpu->flags.OF = 0;
 }
 
 void op_cmp(struct CPU *cpu, void *dst, void *src, int size){
     if(size==8){
-        uint8_t res = *(uint8_t*)dst - *(uint8_t*)src;
+        uint8_t a = *(uint8_t*)dst;
+        uint8_t b = *(uint8_t*)src;
+        uint8_t res = a - b;
         cpu->flags.ZF = (res==0);
         cpu->flags.SF = (res>>7)&1;
+        cpu->flags.CF = (a < b);
+        cpu->flags.OF = ((a ^ b) & (a ^ res)) >> 7;
     } else {
         uint32_t res = *(uint32_t*)dst - *(uint32_t*)src;
         update_sub_flags(cpu, *(uint32_t*)dst, *(uint32_t*)src, res);
@@ -194,26 +312,100 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
 
     switch(opcode){
         HANDLE_MOV_IMM32
+		
+        HANDLE_MOV(0x88)
+	
         MAKE_OP(0x00, op_add)
-        MAKE_OP(0x88, op_mov)
         MAKE_OP(0x18, op_sub)
         MAKE_OP(0x30, op_xor)
         MAKE_OP(0x38, op_cmp)
         MAKE_OP(0x20, op_and)
-        MAKE_OP(0x08,  op_or)
+        MAKE_OP(0x08, op_or)
 
+        /* MOV AL, [imm32] */
+        case 0xA0: {
+            uint32_t addr = mem_read32(memory, cpu->eip + 1);
+            cpu->eax.l = mem_read8(memory, addr);
+            cpu->eip += 5;
+            break;
+        }
+        
+        /* MOV [imm32], AL */
+        case 0xA2: {
+            uint32_t addr = mem_read32(memory, cpu->eip + 1);
+            mem_write8(memory, addr, cpu->eax.l);
+            cpu->eip += 5;
+            break;
+        }
+
+        /* NOP */
         case 0x90: cpu->eip+=1; break;
-        case 0xE9: { int32_t rel = mem_read32(memory, cpu->eip+1); cpu->eip += rel+5; break; }
-        case 0xEB: { int8_t rel = mem_read8(memory, cpu->eip+1); cpu->eip += rel+2; break; }
+        
+        /* JMP rel32 */
+        case 0xE9: { 
+            int32_t rel = mem_read32(memory, cpu->eip+1); 
+            cpu->eip += rel+5; 
+            break; 
+        }
+        
+        /* JMP rel8 */
+        case 0xEB: { 
+            int8_t rel = mem_read8(memory, cpu->eip+1); 
+            cpu->eip += rel+2; 
+            break; 
+        }
 
+        /* JE rel8 */
+        case 0x74: { 
+            int8_t rel = mem_read8(memory, cpu->eip + 1);
+            if(cpu->flags.ZF)
+                cpu->eip += rel + 2;
+            else
+                cpu->eip += 2;
+            break;
+        }
+        
+        /* JNE rel8 */
+        case 0x75: { 
+            int8_t rel = mem_read8(memory, cpu->eip + 1);
+            if(!cpu->flags.ZF)
+                cpu->eip += rel + 2;
+            else
+                cpu->eip += 2;
+            break;
+        } 
+        
+        /* SUB AL, imm8 */
+        case 0x2C: { 
+            uint8_t imm = mem_read8(memory, cpu->eip + 1);
+            op_sub(cpu, &cpu->eax.l, &imm, 8);
+            cpu->eip += 2;
+            break;
+        }
+
+        /* PUSH EAX */
         case 0x50: push32(memory, cpu, cpu->eax.e); cpu->eip+=1; break;
+        
+        /* POP EAX */
         case 0x58: cpu->eax.e = pop32(memory, cpu); cpu->eip+=1; break;
 
-        case 0xE8: { int32_t rel = mem_read32(memory, cpu->eip+1); call_rel32(memory, cpu, rel); break; }
+        /* CALL rel32 */
+        case 0xE8: { 
+            int32_t rel = mem_read32(memory, cpu->eip+1); 
+            call_rel32(memory, cpu, rel); 
+            break; 
+        }
+        
+        /* RET */
         case 0xC3: ret(memory, cpu); break;
 
+        /* CLC */
         case 0xF8: cpu->flags.CF=0; cpu->eip+=1; break;
+        
+        /* INT3 */
         case 0xCC: cpu->eip += 1; break;
+        
+        /* INT */
         case 0xCD: {
             uint8_t num = mem_read8(memory, cpu->eip+1);
             if(num==0x80){
@@ -224,6 +416,8 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
             cpu->eip+=2;
             break;
         }
+        
+        /* HLT */
         case 0xF4: printf("Encerrando.\n"); exit(0); break;
 
         default:

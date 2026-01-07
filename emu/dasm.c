@@ -12,10 +12,11 @@ static const char *reg32_name(uint8_t reg) {
 }
 
 static const char *reg8_name(uint8_t reg) {
-    static const char *names[4] = {
-        "al", "cl", "dl", "bl"
+    static const char *names[8] = {
+        "al", "cl", "dl", "bl",
+        "ah", "ch", "dh", "bh"
     };
-    return (reg < 4) ? names[reg] : "???";
+    return (reg < 8) ? names[reg] : "???";
 }
 
 static void print_bytes(uint8_t *mem, uint32_t addr, int count) {
@@ -150,6 +151,42 @@ void disassemble(uint8_t *memory, uint32_t eip) {
         case 0x0C: print_imm8(memory, eip, "or", "al"); break; // OR AL, imm8
         case 0x0D: print_imm32(memory, eip, "or", "eax"); break; // OR EAX, imm32
 		
+        /* MOV AL, [imm32] */
+        case 0xA0: {
+            instr_len = 5;
+            print_bytes(memory, eip, instr_len);
+            uint32_t addr = mem_read32(memory, eip + 1);
+            printf("    mov al, [0x%08X]\n", addr);
+            break;
+        }
+        
+        /* MOV [imm32], AL */
+        case 0xA2: {
+            instr_len = 5;
+            print_bytes(memory, eip, instr_len);
+            uint32_t addr = mem_read32(memory, eip + 1);
+            printf("    mov [0x%08X], al\n", addr);
+            break;
+        }
+        
+        /* SUB AL, imm8 */
+        case 0x2C: {
+            instr_len = 2;
+            print_bytes(memory, eip, instr_len);
+            uint8_t imm = memory[eip + 1];
+            printf("    sub al, %u\n", imm);
+            break;
+        }
+        
+        /* JNE rel8 */
+        case 0x75: {
+            instr_len = 2;
+            print_bytes(memory, eip, instr_len);
+            int8_t rel = (int8_t)memory[eip + 1];
+            printf("    jne 0x%08X\n", eip + instr_len + rel);
+            break;
+        }
+
         // NOP
         case 0x90:
             print_bytes(memory, eip, 1);
@@ -171,6 +208,15 @@ void disassemble(uint8_t *memory, uint32_t eip) {
             print_bytes(memory, eip, instr_len);
             int8_t rel = (int8_t)memory[eip + 1];
             printf("    jmp 0x%08X\n", eip + instr_len + rel);
+            break;
+        }
+
+        // JE rel8
+        case 0x74: {
+            int instr_len = 2;
+            print_bytes(memory, eip, instr_len);
+            int8_t rel = (int8_t)memory[eip + 1];
+            printf("    je 0x%08X\n", eip + instr_len + rel);
             break;
         }
 

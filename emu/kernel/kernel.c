@@ -1,6 +1,8 @@
 #include "kernel.h"
 #include "../mem.h"
 #include <stdio.h>
+#include <termios.h>
+#include <unistd.h>
 
 static int kernel_initialized = 0;
 
@@ -44,26 +46,34 @@ static void handle_read(struct CPU *cpu, uint8_t *memory, struct fake_process *p
     printf("\033[1;33m> \033[0m");
     fflush(stdout);
     
-    size_t bytes_read = 0;
-    int c;
-
-    while(bytes_read < max_count) {
-        c = getchar();
+    if(max_count==1){
+        char line[256];
         
-        if(c==EOF) {
-            break;
+        if(fgets(line, sizeof(line), stdin) != NULL) {
+            buf[0] = line[0];
+            cpu->eax.e = 1;
+            
+            KDEBUG("\033[90mread() = 1 byte: '%c' (0x%02x)\033[0m\n", 
+                   buf[0], (unsigned char)buf[0]);
+        } else {
+            cpu->eax.e = 0;
+        }
+    } else {
+        size_t bytes_read = 0;
+        int c;
+        
+        while(bytes_read < max_count) {
+            c = getchar();
+            if(c == EOF) break;
+            
+            buf[bytes_read++] = (char)c;
+            
+            if(c == '\n') break;
         }
         
-        buf[bytes_read++] = (char)c;
-        
-        if(c=='\n') {
-            break;
-        }
+        cpu->eax.e = (uint32_t)bytes_read;
+        KDEBUG("\033[90mread() = %u bytes\033[0m\n", cpu->eax.e);
     }
-    
-    cpu->eax.e = (uint32_t)bytes_read;
-    
-    KDEBUG("\033[90mread() = %zu bytes: \"", bytes_read);
 }
 
 static void handle_exit(struct CPU *cpu, uint8_t *memory) {
@@ -100,3 +110,4 @@ void kernel_handle_syscall(struct fake_process *proc) {
             break;
     }
 }
+
