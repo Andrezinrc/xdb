@@ -173,18 +173,36 @@ void op_cmp(struct CPU *cpu, void *dst, void *src, int size){
     }
 }
 
+void op_and(struct CPU *cpu, void *dst, void *src, int size){
+    if(size==8) *(uint8_t*)dst &= *(uint8_t*)src;
+    else *(uint32_t*)dst &= *(uint32_t*)src;
+    update_ZF_SF(cpu, *(uint32_t*)dst);
+    cpu->flags.CF = 0;
+    cpu->flags.OF = 0;
+}
+
+void op_or(struct CPU *cpu, void *dst, void *src, int size){
+    if(size==8) *(uint8_t*)dst |= *(uint8_t*)src;
+    else *(uint32_t*)dst |= *(uint32_t*)src;
+    update_ZF_SF(cpu, *(uint32_t*)dst);
+    cpu->flags.CF = 0;
+    cpu->flags.OF = 0;
+}
+
 void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
     uint8_t opcode = mem_read8(memory, cpu->eip);
 
     switch(opcode){
         HANDLE_MOV_IMM32
-        MAKE_OP(0x00, op_add) // ADD
-        MAKE_OP(0x88, op_mov) // MOV
-        MAKE_OP(0x18, op_sub) // SUB
-        MAKE_OP(0x30, op_xor) // XOR
-        MAKE_OP(0x38, op_cmp) // CMP
+        MAKE_OP(0x00, op_add)
+        MAKE_OP(0x88, op_mov)
+        MAKE_OP(0x18, op_sub)
+        MAKE_OP(0x30, op_xor)
+        MAKE_OP(0x38, op_cmp)
+        MAKE_OP(0x20, op_and)
+        MAKE_OP(0x08,  op_or)
 
-        case 0x90: cpu->eip+=1; break; // NOP
+        case 0x90: cpu->eip+=1; break;
         case 0xE9: { int32_t rel = mem_read32(memory, cpu->eip+1); cpu->eip += rel+5; break; }
         case 0xEB: { int8_t rel = mem_read8(memory, cpu->eip+1); cpu->eip += rel+2; break; }
 
@@ -194,9 +212,9 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
         case 0xE8: { int32_t rel = mem_read32(memory, cpu->eip+1); call_rel32(memory, cpu, rel); break; }
         case 0xC3: ret(memory, cpu); break;
 
-        case 0xF8: cpu->flags.CF=0; cpu->eip+=1; break; // CLC
-        case 0xCC: cpu->eip += 1; break; // INT3
-        case 0xCD: { // INT n
+        case 0xF8: cpu->flags.CF=0; cpu->eip+=1; break;
+        case 0xCC: cpu->eip += 1; break;
+        case 0xCD: {
             uint8_t num = mem_read8(memory, cpu->eip+1);
             if(num==0x80){
                 if(cpu->debug_mode) dbg_trace_syscall(cpu);
