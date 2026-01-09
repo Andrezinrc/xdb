@@ -31,9 +31,11 @@ void dbg_help(void){
 
 static void dbg_examine(uint32_t addr, uint32_t len) {
     uint32_t i;
+    
+    printf("\033[44m\033[97m");
 
     for (i=0;i<len;i+=16){
-        printf("%08X: ", addr + i);
+        printf("\033[96m%08X:\033[97m ", addr + i);
 
         uint32_t line_vals[16];
         int bytes_in_line = (len - i >= 16) ? 16 : (len - i);
@@ -52,9 +54,9 @@ static void dbg_examine(uint32_t addr, uint32_t len) {
             line_vals[j] = val & 0xFF;
 
             if (cur < MEM_SIZE && placeholder_map[cur]) {
-                printf("?? ");
+                printf("\033[93m??\033[97m ");
             } else {
-                printf("%02X ", line_vals[j]);
+                printf("\033[92m%02X\033[97m ", line_vals[j]);
             }
         }
         
@@ -63,13 +65,14 @@ static void dbg_examine(uint32_t addr, uint32_t len) {
             printf("   ");
         }
 
-        printf(" |");
+        printf("\033[97m |");
         for (int j=0;j<bytes_in_line;j++) {
             uint8_t c = line_vals[j];
             printf("%c", (c >= 32 && c <= 126) ? c : '.');
         }
-        printf("|\n");
+        printf("|\033[97m\n");
     }
+    printf("\033[44m\033[97m");
 }
 
 void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *memory){
