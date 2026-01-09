@@ -2,7 +2,10 @@
 #include <string.h>
 #include <ctype.h>
 #include "dbg.h"
+#include "mem.h"
 #include "ptrace-fake.h"
+
+static uint8_t placeholder_map[MEM_SIZE];
 
 void dbg_prompt(char *buf, size_t size){
     printf("\033[1;32m(dbg)\033[0m ");
@@ -17,7 +20,8 @@ void dbg_help(void){
     printf("c          - Continue execution\n");
     printf("q          - Quit debugger\n");
     printf("r reg val  - Write register value\n");
-    printf("w addr val - Write memory\n");
+    printf("w addr val - Write memory (use '??' for placeholders)\n");
+    printf("f addr val - Fill placeholders only\n");
     printf("b addr     - Set breakpoint\n");
     printf("d addr     - Delete breakpoint\n");
     printf("x addr len - Examine memory (hex + ASCII)\n");
@@ -36,16 +40,24 @@ static void dbg_examine(uint32_t addr, uint32_t len) {
 
         for (int j=0;j<bytes_in_line;j++) {
             uint32_t val;
+            uint32_t cur = addr + i + j;
+
             fake_ptrace(
                 PTRACE_PEEKDATA,
                 1337,
-                (void*)(addr + i + j),
+                (void*)cur,
                 &val
             );
-            line_vals[j] = val & 0xFF;
-            printf("%02X ", line_vals[j]);
-        }
 
+            line_vals[j] = val & 0xFF;
+
+            if (cur < MEM_SIZE && placeholder_map[cur]) {
+                printf("?? ");
+            } else {
+                printf("%02X ", line_vals[j]);
+            }
+        }
+        
         /* Preenche espaço se a linha tiver menos de 16 bytes */
         for (int j=bytes_in_line;j<16;j++) {
             printf("   ");
@@ -122,20 +134,89 @@ void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *m
         }
     
         int count = 0;
+        int placeholder_count = 0;
+        
         while ((token = strtok_r(NULL, " ", &saveptr)) != NULL){
+        
+            if (strcmp(token, "??")==0) {
+                if (addr < MEM_SIZE) {
+                    placeholder_map[addr] = 1;
+                }
+                
+                addr++;
+                placeholder_count++;
+                continue;
+            }
+        
             uint32_t val;
             if (sscanf(token, "%x", &val) != 1) {
                 printf("Valor invalido: %s\n", token);
                 break;
             }
-    
+        
+            if (addr < MEM_SIZE) {
+                placeholder_map[addr] = 0;
+            }
+        
             uint8_t b = val & 0xFF;
             fake_ptrace(PTRACE_POKEDATA, 1337, (void*)addr, &b);
+        
             addr++;
             count++;
         }
     
-        printf("\033[36m%d byte(s) escritos\033[0m\n", count);
+        printf("\033[36m%d byte(s) escritos", count);
+        if (placeholder_count > 0) {
+            printf(" + %d placeholder(s)", placeholder_count);
+        }
+        printf("\033[0m\n");
+        return;
+    }
+
+    if (cmd[0] == 'f') {
+        char *saveptr;
+        char *token = strtok_r(cmd + 1, " ", &saveptr);
+    
+        if (!token) {
+            printf("Uso: f <addr> <byte1> [byte2 ...]\n");
+            return;
+        }
+    
+        uint32_t addr;
+        if (sscanf(token, "%x", &addr) != 1) {
+            printf("Endereco invalido\n");
+            return;
+        }
+    
+        int count = 0;
+        
+        while ((token = strtok_r(NULL, " ", &saveptr)) != NULL){
+        
+            if (addr >= MEM_SIZE) {
+                printf("Erro: endereco fora da memoria\n");
+                break;
+            }
+        
+            if (!placeholder_map[addr]) {
+                printf("Erro: 0x%08X nao eh placeholder\n", addr);
+                break;
+            }
+        
+            uint32_t val;
+            if (sscanf(token, "%x", &val) != 1) {
+                printf("Valor invalido: %s\n", token);
+                break;
+            }
+        
+            uint8_t b = val & 0xFF;
+            fake_ptrace(PTRACE_POKEDATA, 1337, (void*)addr, &b);
+            placeholder_map[addr] = 0;
+        
+            addr++;
+            count++;
+        }
+    
+        printf("\033[36m%d placeholder(s) preenchidos\033[0m\n", count);
         return;
     }
     

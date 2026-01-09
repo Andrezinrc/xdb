@@ -56,18 +56,21 @@ long fake_ptrace(int request, pid_t pid, void *addr, void *data) {
         memcpy(&p->cpu, data, sizeof(struct CPU));
         return 0;
 
-    case PTRACE_PEEKDATA:
-        *(uint32_t*)data =
-            *(uint32_t*)(p->memory + (uintptr_t)addr);
-        return 0;
-
-    case PTRACE_POKEDATA:
-        *(uint32_t*)(p->memory + (uintptr_t)addr) =
-            *(uint32_t*)data;
+    case PTRACE_POKEDATA: {
+        uint8_t *byte_ptr = (uint8_t*)data;
+        p->memory[(uintptr_t)addr] = *byte_ptr;
         return 0;
     }
-
-    return -EINVAL;
+    
+    case PTRACE_PEEKDATA: {
+        uint32_t value = p->memory[(uintptr_t)addr];
+        *(uint32_t*)data = value;
+        return 0;
+    }
+    
+    default:
+        return -EINVAL;
+    }
 }
 
 void bp_set(uint32_t addr, uint8_t *memory) {
@@ -75,7 +78,7 @@ void bp_set(uint32_t addr, uint8_t *memory) {
         if (!breakpoints[i].active) {
             breakpoints[i].addr = addr;
             breakpoints[i].orig_byte = memory[addr];
-            memory[addr] = 0xCC; // INT3 - breakpoint de software
+            memory[addr] = 0xCC; // INT3
             breakpoints[i].active = 1;
             printf("Breakpoint definido em 0x%X\n", addr);
             return;
