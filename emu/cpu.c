@@ -311,6 +311,32 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
     uint8_t opcode = mem_read8(memory, cpu->eip);
 
     switch(opcode){
+        case 0x0F: {
+            uint8_t subop = mem_read8(memory, cpu->eip + 1);
+            switch(subop){
+                case 0x84: { /* JZ/JE rel32 */
+                    int32_t rel = mem_read32(memory, cpu->eip + 2);
+                    if(cpu->flags.ZF)
+                        cpu->eip += rel + 6;
+                    else
+                        cpu->eip += 6;
+                    break;
+                }
+                case 0x85: { /* JNZ/JNE rel32 */
+                    int32_t rel = mem_read32(memory, cpu->eip + 2);
+                    if(!cpu->flags.ZF)
+                        cpu->eip += rel + 6;
+                    else
+                        cpu->eip += 6;
+                    break;
+                }
+                default:
+                    printf("Opcode 0F desconhecido: 0x%02X em EIP=0x%08X\n", subop, cpu->eip);
+                    exit(1);
+            }
+            break;
+        }
+
         HANDLE_MOV_IMM32
 		
         /* INC/DEC EAX */

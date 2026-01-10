@@ -89,8 +89,32 @@ void disassemble(uint8_t *memory, uint32_t eip) {
     uint8_t op = memory[eip];
     printf("%08X: ", eip);
 	
-    int instr_len = 1;
-	
+    if(op == 0x0F) {
+        uint8_t subop = memory[eip + 1];
+
+        switch(subop) {
+            case 0x84: { // JE rel32
+                int instr_len = 6;
+                print_bytes(memory, eip, instr_len);
+                int32_t rel = mem_read32(memory, eip + 2);
+                printf("    je 0x%08X\n", eip + instr_len + rel);
+                return;
+            }
+            case 0x85: { // JNE rel32
+                int instr_len = 6;
+                print_bytes(memory, eip, instr_len);
+                int32_t rel = mem_read32(memory, eip + 2);
+                printf("    jne 0x%08X\n", eip + instr_len + rel);
+                return;
+            }
+            default:
+                print_bytes(memory, eip, 2);
+                printf("    db 0x0F, 0x%02X\n", subop);
+                return;
+        }
+    }
+
+    int instr_len = 1;	
     if(op >= 0xB8 && op <= 0xBF) { // MOV reg32, imm32
         instr_len = 5;
         print_bytes(memory, eip, instr_len);
