@@ -12,6 +12,35 @@
 #include "kernel/kernel.h"
 #include "dbg.h"
 
+void* get_reg(struct CPU *cpu, int index, int size){
+    if(size == 8){
+        switch(index){
+            case 0: return &cpu->eax.l;  // AL
+            case 1: return &cpu->ecx.l;  // CL
+            case 2: return &cpu->edx.l;  // DL
+            case 3: return &cpu->ebx.l;  // BL
+            case 4: return &cpu->eax.h;  // AH
+            case 5: return &cpu->ecx.h;  // CH
+            case 6: return &cpu->edx.h;  // DH
+            case 7: return &cpu->ebx.h;  // BH
+            default: return NULL;
+        }
+    } else if(size == 32){
+        switch(index){
+            case 0: return &cpu->eax.e;
+            case 1: return &cpu->ecx.e;
+            case 2: return &cpu->edx.e;
+            case 3: return &cpu->ebx.e;
+            case 4: return &cpu->esp.e;
+            case 5: return &cpu->ebp.e;
+            case 6: return &cpu->esi.e;
+            case 7: return &cpu->edi.e;
+            default: return NULL;
+        }
+    }
+    return NULL;
+}
+
 #define DECODE_MODRM(modrm, mod, reg, rm) \
     do { \
         mod = (modrm) >> 6; \
@@ -170,6 +199,39 @@
         cpu->eip += 2 + (has_sib ? 1 : 0); \
         break; \
     }
+   
+#define HANDLE_MOV_REG8_IMM_ALL() \
+    case 0xB0: case 0xB1: case 0xB2: case 0xB3: \
+    case 0xB4: case 0xB5: case 0xB6: case 0xB7: { \
+        uint8_t imm = mem_read8(memory, cpu->eip + 1); \
+        int reg = opcode & 7; \
+        uint8_t *r = (uint8_t*)get_reg(cpu, reg, 8); \
+        if (r) *r = imm; \
+        cpu->eip += 2; \
+        break; \
+    }
+ 
+#define HANDLE_MOV_REG8_MEM_ALL() \
+    case 0xA0: case 0xA1: case 0xA2: case 0xA3: \
+    case 0xA4: case 0xA5: case 0xA6: case 0xA7: { \
+        uint32_t addr = mem_read32(memory, cpu->eip + 1); \
+        int reg = opcode & 7; \
+        uint8_t *r = (uint8_t*)get_reg(cpu, reg, 8); \
+        if (r) *r = mem_read8(memory, addr); \
+        cpu->eip += 5; \
+        break; \
+    }
+    
+#define HANDLE_MOV_MEM_REG8_ALL() \
+    case 0xA8: case 0xA9: case 0xAA: case 0xAB: \
+    case 0xAC: case 0xAD: case 0xAE: case 0xAF: { \
+        uint32_t addr = mem_read32(memory, cpu->eip + 1); \
+        int reg = opcode & 7; \
+        uint8_t *r = (uint8_t*)get_reg(cpu, reg, 8); \
+        if (r) mem_write8(memory, addr, *r); \
+        cpu->eip += 5; \
+        break; \
+    }
     
 #define HANDLE_INCDEC(base, OP) \
     case base+0x0: { cpu->eax.e OP; update_ZF_SF(cpu, cpu->eax.e); cpu->eip += 1; break; } \
@@ -200,6 +262,17 @@
     case base+0x5: cpu->ebp.e = pop32(memory, cpu); cpu->eip += 1; break; \
     case base+0x6: cpu->esi.e = pop32(memory, cpu); cpu->eip += 1; break; \
     case base+0x7: cpu->edi.e = pop32(memory, cpu); cpu->eip += 1; break;
+
+#define HANDLE_SUB_REG8_IMM_ALL() \
+    case 0x80: case 0x81: case 0x82: case 0x83: \
+    case 0x84: case 0x85: case 0x86: case 0x87: { \
+        uint8_t imm = mem_read8(memory, cpu->eip + 2); \
+        int reg = opcode & 7; \
+        uint8_t *r = (uint8_t*)get_reg(cpu, reg, 8); \
+        if (r) op_sub(cpu, r, &imm, 8); \
+        cpu->eip += 3; /* 1 opcode + 1 ModRM + 1 imm8 */ \
+        break; \
+    }
     
 void cpu_init(struct CPU *cpu, uint32_t mem_size) {
     memset(cpu, 0, sizeof(struct CPU));
@@ -222,35 +295,6 @@ void update_sub_flags(struct CPU *cpu, uint32_t a, uint32_t b, uint32_t res) {
     update_ZF_SF(cpu, res);
     cpu->flags.CF = (a < b);
     cpu->flags.OF = (((int32_t)a ^ (int32_t)b) & ((int32_t)a ^ (int32_t)res)) >> 31;
-}
-
-void* get_reg(struct CPU *cpu, int index, int size){
-    if(size == 8){
-        switch(index){
-            case 0: return &cpu->eax.l;  // AL
-            case 1: return &cpu->ecx.l;  // CL
-            case 2: return &cpu->edx.l;  // DL
-            case 3: return &cpu->ebx.l;  // BL
-            case 4: return &cpu->eax.h;  // AH
-            case 5: return &cpu->ecx.h;  // CH
-            case 6: return &cpu->edx.h;  // DH
-            case 7: return &cpu->ebx.h;  // BH
-            default: return NULL;
-        }
-    } else if(size == 32){
-        switch(index){
-            case 0: return &cpu->eax.e;
-            case 1: return &cpu->ecx.e;
-            case 2: return &cpu->edx.e;
-            case 3: return &cpu->ebx.e;
-            case 4: return &cpu->esp.e;
-            case 5: return &cpu->ebp.e;
-            case 6: return &cpu->esi.e;
-            case 7: return &cpu->edi.e;
-            default: return NULL;
-        }
-    }
-    return NULL;
 }
 
 void op_add(struct CPU *cpu, void *dst, void *src, int size){
@@ -368,7 +412,6 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
 
         HANDLE_MOV_IMM32
 		
-        /* INC/DEC 32 bit */
         HANDLE_INCDEC(0x40, ++)  // INC
         HANDLE_INCDEC(0x48, --)  // DEC
         
@@ -393,60 +436,16 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
      		
         HANDLE_MOV(0x88)
         
-        /* MOV AL, imm8 */
-        case 0xB0: {
-            uint8_t imm = mem_read8(memory, cpu->eip + 1);
-            cpu->eax.l = imm;
-            cpu->eip += 2;
-            break;
-        }
-        
-        /* MOV CL, imm8 */
-        case 0xB1: {
-            uint8_t imm = mem_read8(memory, cpu->eip + 1);
-            cpu->ecx.l = imm;
-            cpu->eip += 2;
-            break;
-        }
-        
-        /* MOV DL, imm8 */
-        case 0xB2: {
-            uint8_t imm = mem_read8(memory, cpu->eip + 1);
-            cpu->edx.l = imm;
-            cpu->eip += 2;
-            break;
-        }
-        
-        /* MOV BL, imm8 */
-        case 0xB3: {
-            uint8_t imm = mem_read8(memory, cpu->eip + 1);
-            cpu->ebx.l = imm;
-            cpu->eip += 2;
-            break;
-        }
+        HANDLE_MOV_REG8_IMM_ALL() 
+        HANDLE_MOV_REG8_MEM_ALL()
+        HANDLE_MOV_MEM_REG8_ALL()
 	    
         MAKE_OP(0x00, op_add)
         MAKE_OP(0x18, op_sub)
         MAKE_OP(0x30, op_xor)
         MAKE_OP(0x38, op_cmp)
         MAKE_OP(0x20, op_and)
-        MAKE_OP(0x08, op_or)
-
-        /* MOV AL, [imm32] */
-        case 0xA0: {
-            uint32_t addr = mem_read32(memory, cpu->eip + 1);
-            cpu->eax.l = mem_read8(memory, addr);
-            cpu->eip += 5;
-            break;
-        }
-        
-        /* MOV [imm32], AL */
-        case 0xA2: {
-            uint32_t addr = mem_read32(memory, cpu->eip + 1);
-            mem_write8(memory, addr, cpu->eax.l);
-            cpu->eip += 5;
-            break;
-        }
+        MAKE_OP(0x08,  op_or)
 
         /* NOP */
         case 0x90: cpu->eip+=1; break;
@@ -485,17 +484,10 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
             break;
         } 
         
-        /* SUB AL, imm8 */
-        case 0x2C: { 
-            uint8_t imm = mem_read8(memory, cpu->eip + 1);
-            op_sub(cpu, &cpu->eax.l, &imm, 8);
-            cpu->eip += 2;
-            break;
-        }
-
-        /* PUSH/POP 32 bit */
         HANDLE_PUSH(0x50) // PUSH
         HANDLE_POP(0x58) // POP
+        
+        HANDLE_SUB_REG8_IMM_ALL() /* SUB reg8, imm8 */
         
         /* CALL rel32 */
         case 0xE8: { 
