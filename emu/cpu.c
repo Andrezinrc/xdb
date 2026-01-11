@@ -170,7 +170,37 @@
         cpu->eip += 2 + (has_sib ? 1 : 0); \
         break; \
     }
+    
+#define HANDLE_INCDEC(base, OP) \
+    case base+0x0: { cpu->eax.e OP; update_ZF_SF(cpu, cpu->eax.e); cpu->eip += 1; break; } \
+    case base+0x1: { cpu->ecx.e OP; update_ZF_SF(cpu, cpu->ecx.e); cpu->eip += 1; break; } \
+    case base+0x2: { cpu->edx.e OP; update_ZF_SF(cpu, cpu->edx.e); cpu->eip += 1; break; } \
+    case base+0x3: { cpu->ebx.e OP; update_ZF_SF(cpu, cpu->ebx.e); cpu->eip += 1; break; } \
+    case base+0x4: { cpu->esp.e OP; update_ZF_SF(cpu, cpu->esp.e); cpu->eip += 1; break; } \
+    case base+0x5: { cpu->ebp.e OP; update_ZF_SF(cpu, cpu->ebp.e); cpu->eip += 1; break; } \
+    case base+0x6: { cpu->esi.e OP; update_ZF_SF(cpu, cpu->esi.e); cpu->eip += 1; break; } \
+    case base+0x7: { cpu->edi.e OP; update_ZF_SF(cpu, cpu->edi.e); cpu->eip += 1; break; }
 
+#define HANDLE_PUSH(base) \
+    case base+0x0: push32(memory, cpu, cpu->eax.e); cpu->eip += 1; break; \
+    case base+0x1: push32(memory, cpu, cpu->ecx.e); cpu->eip += 1; break; \
+    case base+0x2: push32(memory, cpu, cpu->edx.e); cpu->eip += 1; break; \
+    case base+0x3: push32(memory, cpu, cpu->ebx.e); cpu->eip += 1; break; \
+    case base+0x4: push32(memory, cpu, cpu->esp.e); cpu->eip += 1; break; \
+    case base+0x5: push32(memory, cpu, cpu->ebp.e); cpu->eip += 1; break; \
+    case base+0x6: push32(memory, cpu, cpu->esi.e); cpu->eip += 1; break; \
+    case base+0x7: push32(memory, cpu, cpu->edi.e); cpu->eip += 1; break;
+
+#define HANDLE_POP(base) \
+    case base+0x0: cpu->eax.e = pop32(memory, cpu); cpu->eip += 1; break; \
+    case base+0x1: cpu->ecx.e = pop32(memory, cpu); cpu->eip += 1; break; \
+    case base+0x2: cpu->edx.e = pop32(memory, cpu); cpu->eip += 1; break; \
+    case base+0x3: cpu->ebx.e = pop32(memory, cpu); cpu->eip += 1; break; \
+    case base+0x4: cpu->esp.e = pop32(memory, cpu); cpu->eip += 1; break; \
+    case base+0x5: cpu->ebp.e = pop32(memory, cpu); cpu->eip += 1; break; \
+    case base+0x6: cpu->esi.e = pop32(memory, cpu); cpu->eip += 1; break; \
+    case base+0x7: cpu->edi.e = pop32(memory, cpu); cpu->eip += 1; break;
+    
 void cpu_init(struct CPU *cpu, uint32_t mem_size) {
     memset(cpu, 0, sizeof(struct CPU));
     cpu->esp.e = mem_size - 4;
@@ -338,11 +368,11 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
 
         HANDLE_MOV_IMM32
 		
-        /* INC/DEC EAX */
-        case 0x40: { cpu->eax.e++; update_ZF_SF(cpu, cpu->eax.e); cpu->eip += 1; break; } // INC EAX
-        case 0x48: { cpu->eax.e--; update_ZF_SF(cpu, cpu->eax.e); cpu->eip += 1; break; } // DEC EAX
+        /* INC/DEC 32 bit */
+        HANDLE_INCDEC(0x40, ++)  // INC
+        HANDLE_INCDEC(0x48, --)  // DEC
         
-        /* INC/DEC */
+        /* INC/DEC 8-bit via 0xFE */
         case 0xFE: {
             uint8_t subop = mem_read8(memory, cpu->eip + 1);
             if(subop == 0xC0) { // INC AL
@@ -463,12 +493,10 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
             break;
         }
 
-        /* PUSH EAX */
-        case 0x50: push32(memory, cpu, cpu->eax.e); cpu->eip+=1; break;
+        /* PUSH/POP 32 bit */
+        HANDLE_PUSH(0x50) // PUSH
+        HANDLE_POP(0x58) // POP
         
-        /* POP EAX */
-        case 0x58: cpu->eax.e = pop32(memory, cpu); cpu->eip+=1; break;
-
         /* CALL rel32 */
         case 0xE8: { 
             int32_t rel = mem_read32(memory, cpu->eip+1); 

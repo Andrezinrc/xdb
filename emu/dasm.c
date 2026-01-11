@@ -244,10 +244,26 @@ void disassemble(uint8_t *memory, uint32_t eip) {
             break;
         }
 
-        // PUSH/POP EAX
+        /* PUSH reg32 */
         case 0x50: print_bytes(memory, eip, 1); printf("    push eax\n"); break;
+        case 0x51: print_bytes(memory, eip, 1); printf("    push ecx\n"); break;
+        case 0x52: print_bytes(memory, eip, 1); printf("    push edx\n"); break;
+        case 0x53: print_bytes(memory, eip, 1); printf("    push ebx\n"); break;
+        case 0x54: print_bytes(memory, eip, 1); printf("    push esp\n"); break;
+        case 0x55: print_bytes(memory, eip, 1); printf("    push ebp\n"); break;
+        case 0x56: print_bytes(memory, eip, 1); printf("    push esi\n"); break;
+        case 0x57: print_bytes(memory, eip, 1); printf("    push edi\n"); break;
+        
+        /* POP reg32 */
         case 0x58: print_bytes(memory, eip, 1); printf("    pop eax\n"); break;
-
+        case 0x59: print_bytes(memory, eip, 1); printf("    pop ecx\n"); break;
+        case 0x5A: print_bytes(memory, eip, 1); printf("    pop edx\n"); break;
+        case 0x5B: print_bytes(memory, eip, 1); printf("    pop ebx\n"); break;
+        case 0x5C: print_bytes(memory, eip, 1); printf("    pop esp\n"); break;
+        case 0x5D: print_bytes(memory, eip, 1); printf("    pop ebp\n"); break;
+        case 0x5E: print_bytes(memory, eip, 1); printf("    pop esi\n"); break;
+        case 0x5F: print_bytes(memory, eip, 1); printf("    pop edi\n"); break;
+        
         // CALL rel32
         case 0xE8: {
             instr_len = 5;
@@ -257,17 +273,26 @@ void disassemble(uint8_t *memory, uint32_t eip) {
             break;
         }
         
-        /* INC/DEC EAX */
-        case 0x40: 
-            print_bytes(memory, eip, 1);
-            printf("    inc eax\n");
-            break;
+        /* INC reg32 */
+        case 0x40: print_bytes(memory, eip, 1); printf("    inc eax\n"); break;
+        case 0x41: print_bytes(memory, eip, 1); printf("    inc ecx\n"); break;
+        case 0x42: print_bytes(memory, eip, 1); printf("    inc edx\n"); break;
+        case 0x43: print_bytes(memory, eip, 1); printf("    inc ebx\n"); break;
+        case 0x44: print_bytes(memory, eip, 1); printf("    inc esp\n"); break;
+        case 0x45: print_bytes(memory, eip, 1); printf("    inc ebp\n"); break;
+        case 0x46: print_bytes(memory, eip, 1); printf("    inc esi\n"); break;
+        case 0x47: print_bytes(memory, eip, 1); printf("    inc edi\n"); break;
         
-        case 0x48:
-            print_bytes(memory, eip, 1);
-            printf("    dec eax\n");
-            break;
-        
+        /* DEC reg32 */
+        case 0x48: print_bytes(memory, eip, 1); printf("    dec eax\n"); break;
+        case 0x49: print_bytes(memory, eip, 1); printf("    dec ecx\n"); break;
+        case 0x4A: print_bytes(memory, eip, 1); printf("    dec edx\n"); break;
+        case 0x4B: print_bytes(memory, eip, 1); printf("    dec ebx\n"); break;
+        case 0x4C: print_bytes(memory, eip, 1); printf("    dec esp\n"); break;
+        case 0x4D: print_bytes(memory, eip, 1); printf("    dec ebp\n"); break;
+        case 0x4E: print_bytes(memory, eip, 1); printf("    dec esi\n"); break;
+        case 0x4F: print_bytes(memory, eip, 1); printf("    dec edi\n"); break;
+    
         /* FE C0 / FE C8 - INC/DEC AL */
         case 0xFE: {
             uint8_t subop = memory[eip + 1];
