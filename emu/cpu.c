@@ -270,7 +270,7 @@ void* get_reg(struct CPU *cpu, int index, int size){
         int reg = opcode & 7; \
         uint8_t *r = (uint8_t*)get_reg(cpu, reg, 8); \
         if (r) op_sub(cpu, r, &imm, 8); \
-        cpu->eip += 3; /* 1 opcode + 1 ModRM + 1 imm8 */ \
+        cpu->eip += 3; \
         break; \
     }
     
@@ -488,6 +488,14 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
         HANDLE_POP(0x58) // POP
         
         HANDLE_SUB_REG8_IMM_ALL() /* SUB reg8, imm8 */
+        
+        /* SUB AL, imm8 */
+        case 0x2C: {
+            uint8_t imm = mem_read8(memory, cpu->eip + 1);
+            op_sub(cpu, &cpu->eax.l, &imm, 8);
+            cpu->eip += 2;
+            break;
+        }
         
         /* CALL rel32 */
         case 0xE8: { 
