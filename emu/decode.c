@@ -23,33 +23,23 @@ bool modrm_reg_reg(uint8_t modrm, uint8_t *reg, uint8_t *rm) {
 uint32_t modrm_mem_addr(struct CPU *cpu, uint8_t *memory, uint8_t modrm) {
     uint8_t mod = modrm >> 6;
     uint8_t rm  = modrm & 7;
-    static uint32_t sib_used = 0;
-
-    if (mod==0) {
-        // [disp32] quando r/m = 5
-        if (rm==5) {
+    
+    if (mod == 3) {
+        printf("Erro: ModRM mod=3 é registrador, não memória\n");
+        exit(1);
+    }
+    
+    if (mod == 0) {
+        if (rm == 5) {
             return mem_read32(memory, cpu->eip + 2);
         }
-        
-        // SIB byte quando r/m = 4
-        if (rm == 4) {
-            uint8_t sib = mem_read8(memory, cpu->eip + 2 + sib_used);
-            sib_used = 1;
-            
-            uint8_t base = sib & 0x07;
-            uint8_t index = (sib >> 3) & 0x07;
-            uint8_t scale = (sib >> 6) & 0x03;
-            
-            if (index==4){
-                return *(uint32_t*)get_reg(cpu, base, 32);
-            }
-            
-            printf("SIB complexo não suportado: base=%d, index=%d, scale=%d\n", 
-                   base, index, scale);
-            exit(1);
-        }
-
         return *(uint32_t*)get_reg(cpu, rm, 32);
+    }
+
+    if (mod == 2) {
+        uint32_t base = *(uint32_t*)get_reg(cpu, rm, 32);
+        uint32_t disp = mem_read32(memory, cpu->eip + 2);
+        return base + disp;
     }
 
     printf("Modo ModRM não suportado (mod=%d, r/m=%d)\n", mod, rm);

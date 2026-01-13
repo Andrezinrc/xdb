@@ -72,7 +72,7 @@ void* get_reg(struct CPU *cpu, int index, int size){
             OP_NAME(cpu, &mem_val, get_reg(cpu, reg, 8), 8); \
             mem_write8(memory, mem_addr, mem_val); \
         } \
-        cpu->eip += 2 + (has_sib ? 1 : 0); \
+        cpu->eip += 2 + (has_sib ? 1 : 0) + ((mod == 2 || (mod == 0 && rm == 5)) ? 4 : 0); \
         break; \
     } \
     case base+0x1: { /* reg32, modrm32 */ \
@@ -88,7 +88,7 @@ void* get_reg(struct CPU *cpu, int index, int size){
             OP_NAME(cpu, &mem_val, get_reg(cpu, reg, 32), 32); \
             mem_write32(memory, mem_addr, mem_val); \
         } \
-        cpu->eip += 2 + (has_sib ? 1 : 0); \
+        cpu->eip += 2 + (has_sib ? 1 : 0) + ((mod == 2 || (mod == 0 && rm == 5)) ? 4 : 0); \
         break; \
     } \
     case base+0x2: { /* modrm8, reg8 */ \
@@ -105,7 +105,7 @@ void* get_reg(struct CPU *cpu, int index, int size){
             OP_NAME(cpu, &reg_val, &mem_val, 8); \
             mem_write8(memory, mem_addr, mem_val); \
         } \
-        cpu->eip += 2 + (has_sib ? 1 : 0); \
+        cpu->eip += 2 + (has_sib ? 1 : 0) + ((mod == 2 || (mod == 0 && rm == 5)) ? 4 : 0); \
         break; \
     } \
     case base+0x3: { /* modrm32, reg32 */ \
@@ -122,7 +122,7 @@ void* get_reg(struct CPU *cpu, int index, int size){
             OP_NAME(cpu, &reg_val, &mem_val, 32); \
             mem_write32(memory, mem_addr, mem_val); \
         } \
-        cpu->eip += 2 + (has_sib ? 1 : 0); \
+        cpu->eip += 2 + (has_sib ? 1 : 0) + ((mod == 2 || (mod == 0 && rm == 5)) ? 4 : 0); \
         break; \
     } \
     case base+0x4: { /* imm8, AL */ \
@@ -151,7 +151,7 @@ void* get_reg(struct CPU *cpu, int index, int size){
             uint8_t reg_val = *(uint8_t*)get_reg(cpu, reg, 8); \
             mem_write8(memory, mem_addr, reg_val); \
         } \
-        cpu->eip += 2 + (has_sib ? 1 : 0); \
+        cpu->eip += 2 + (has_sib ? 1 : 0) + ((mod == 2 || (mod == 0 && rm == 5)) ? 4 : 0); \
         break; \
     } \
     case base+0x1: { /* MOV reg32, modrm32 */ \
@@ -166,7 +166,7 @@ void* get_reg(struct CPU *cpu, int index, int size){
             uint32_t reg_val = *(uint32_t*)get_reg(cpu, reg, 32); \
             mem_write32(memory, mem_addr, reg_val); \
         } \
-        cpu->eip += 2 + (has_sib ? 1 : 0); \
+        cpu->eip += 2 + (has_sib ? 1 : 0) + ((mod == 2 || (mod == 0 && rm == 5)) ? 4 : 0); \
         break; \
     } \
     case base+0x2: { /* MOV modrm8, reg8 */ \
@@ -181,7 +181,7 @@ void* get_reg(struct CPU *cpu, int index, int size){
             uint8_t mem_val = mem_read8(memory, mem_addr); \
             op_mov(cpu, get_reg(cpu, reg, 8), &mem_val, 8); \
         } \
-        cpu->eip += 2 + (has_sib ? 1 : 0); \
+        cpu->eip += 2 + (has_sib ? 1 : 0) + ((mod == 2 || (mod == 0 && rm == 5)) ? 4 : 0); \
         break; \
     } \
     case base+0x3: { /* MOV modrm32, reg32 */ \
@@ -196,7 +196,7 @@ void* get_reg(struct CPU *cpu, int index, int size){
             uint32_t mem_val = mem_read32(memory, mem_addr); \
             op_mov(cpu, get_reg(cpu, reg, 32), &mem_val, 32); \
         } \
-        cpu->eip += 2 + (has_sib ? 1 : 0); \
+        cpu->eip += 2 + (has_sib ? 1 : 0) + ((mod == 2 || (mod == 0 && rm == 5)) ? 4 : 0); \
         break; \
     }
    

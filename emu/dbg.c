@@ -31,8 +31,6 @@ void dbg_help(void){
 
 static void dbg_examine(uint32_t addr, uint32_t len) {
     uint32_t i;
-    
-    printf("\033[44m\033[97m");
 
     for (i=0;i<len;i+=16){
         printf("\033[96m%08X:\033[97m ", addr + i);
@@ -72,7 +70,6 @@ static void dbg_examine(uint32_t addr, uint32_t len) {
         }
         printf("|\033[97m\n");
     }
-    printf("\033[44m\033[97m");
 }
 
 void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *memory){

@@ -50,7 +50,6 @@ static void debugger_loop(struct fake_process *proc) {
         fake_ptrace(PTRACE_GETREGS, FAKE_PID, NULL, &proc->cpu);
 
         if (!dbg.running){
-            printf("\033[44m\033[97m");
             disassemble(proc->memory, proc->cpu.eip);
             
             dbg_prompt(cmd, sizeof(cmd));
@@ -61,7 +60,7 @@ static void debugger_loop(struct fake_process *proc) {
 
         int idx = bp_check(&proc->cpu);
         if (idx >= 0) {
-            printf("\033[44m\033[97m\033[1;31m=> \033[44m\033[97m");
+            printf("\033[1;31m=>\033[0m");
             printf("Breakpoint atingido em 0x%X\n", proc->cpu.eip);
 
             bp_clear(proc->cpu.eip, proc->memory);
@@ -92,9 +91,7 @@ static void print_header(struct fake_process *proc, int debug_mode){
            MEM_SIZE / 1024, 0x00000000, MEM_SIZE - 1);
     printf("Stack top: 0x%08X\n", proc->cpu.esp.e);
     printf("Entry point: 0x%08X\n", proc->cpu.eip);
-    if(debug_mode) printf("\033[44m\033[97m");
-    printf("Mode: %s\n", debug_mode ? "DEBUG" : "RUN");
-    printf("Feito por: \033[1;37mAndré Moreira\033[0m\n\n");
+    printf("Mode: %s\n\n", debug_mode ? "DEBUG" : "RUN");
 }
 
 int main(int argc, char **argv){
