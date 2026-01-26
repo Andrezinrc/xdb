@@ -14,8 +14,7 @@ This project focuses on **understanding, observing, and controlling** low-level 
 ## Usage
 
 ```bash
-make
-./adr <program.bin>
+./xdb <program.bin>
 ```
 
 ## Purpose

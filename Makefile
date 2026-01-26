@@ -1,4 +1,4 @@
-TARGET = emulator
+TARGET = xdb
 CC = gcc
 CFLAGS = -Iemu -Wall -Wextra -g
 
