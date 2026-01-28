@@ -195,39 +195,6 @@ void* get_reg(struct CPU *cpu, int index, int size){
         break; \
     }
    
-#define HANDLE_MOV_REG8_IMM_ALL() \
-    case 0xB0: case 0xB1: case 0xB2: case 0xB3: \
-    case 0xB4: case 0xB5: case 0xB6: case 0xB7: { \
-        uint8_t imm = mem_read8(memory, cpu->eip + 1); \
-        int reg = opcode & 7; \
-        uint8_t *r = (uint8_t*)get_reg(cpu, reg, 8); \
-        if (r) *r = imm; \
-        cpu->eip += 2; \
-        break; \
-    }
- 
-#define HANDLE_MOV_REG8_MEM_ALL() \
-    case 0xA0: case 0xA1: case 0xA2: case 0xA3: \
-    case 0xA4: case 0xA5: case 0xA6: case 0xA7: { \
-        uint32_t addr = mem_read32(memory, cpu->eip + 1); \
-        int reg = opcode & 7; \
-        uint8_t *r = (uint8_t*)get_reg(cpu, reg, 8); \
-        if (r) *r = mem_read8(memory, addr); \
-        cpu->eip += 5; \
-        break; \
-    }
-    
-#define HANDLE_MOV_MEM_REG8_ALL() \
-    case 0xA8: case 0xA9: case 0xAA: case 0xAB: \
-    case 0xAC: case 0xAD: case 0xAE: case 0xAF: { \
-        uint32_t addr = mem_read32(memory, cpu->eip + 1); \
-        int reg = opcode & 7; \
-        uint8_t *r = (uint8_t*)get_reg(cpu, reg, 8); \
-        if (r) mem_write8(memory, addr, *r); \
-        cpu->eip += 5; \
-        break; \
-    }
-    
 #define HANDLE_INCDEC(base, OP) \
     case base+0x0: { cpu->eax.e OP; update_ZF_SF(cpu, cpu->eax.e); cpu->eip += 1; break; } \
     case base+0x1: { cpu->ecx.e OP; update_ZF_SF(cpu, cpu->ecx.e); cpu->eip += 1; break; } \
@@ -257,17 +224,6 @@ void* get_reg(struct CPU *cpu, int index, int size){
     case base+0x5: cpu->ebp.e = pop32(memory, cpu); cpu->eip += 1; break; \
     case base+0x6: cpu->esi.e = pop32(memory, cpu); cpu->eip += 1; break; \
     case base+0x7: cpu->edi.e = pop32(memory, cpu); cpu->eip += 1; break;
-
-#define HANDLE_SUB_REG8_IMM_ALL() \
-    case 0x80: case 0x81: case 0x82: case 0x83: \
-    case 0x84: case 0x85: case 0x86: case 0x87: { \
-        uint8_t imm = mem_read8(memory, cpu->eip + 2); \
-        int reg = opcode & 7; \
-        uint8_t *r = (uint8_t*)get_reg(cpu, reg, 8); \
-        if (r) op_sub(cpu, r, &imm, 8); \
-        cpu->eip += 3; \
-        break; \
-    }
     
 void cpu_init(struct CPU *cpu, uint32_t mem_size) {
     memset(cpu, 0, sizeof(struct CPU));
@@ -409,32 +365,8 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
 		
         HANDLE_INCDEC(0x40, ++)  // INC
         HANDLE_INCDEC(0x48, --)  // DEC
-        
-        /* INC/DEC 8-bit */
-        case 0xFE: {
-            uint8_t subop = mem_read8(memory, cpu->eip + 1);
-            if(subop == 0xC0) { // INC AL
-                cpu->eax.l++;
-                update_ZF_SF(cpu, cpu->eax.l);
-                cpu->eip += 2;
-                break;
-            }
-            if(subop == 0xC8) { // DEC AL
-                cpu->eax.l--;
-                update_ZF_SF(cpu, cpu->eax.l);
-                cpu->eip += 2;
-                break;
-            }
-            printf("Subopcode FE desconhecido: 0x%02X\n", subop);
-            exit(1);
-        }
      		
         HANDLE_MOV(0x88)
-        
-        HANDLE_MOV_REG8_IMM_ALL() 
-        HANDLE_MOV_REG8_MEM_ALL()
-        HANDLE_MOV_MEM_REG8_ALL()
-	    
         MAKE_OP(0x00, op_add)
         MAKE_OP(0x18, op_sub)
         MAKE_OP(0x30, op_xor)
@@ -481,8 +413,6 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
         
         HANDLE_PUSH(0x50) // PUSH
         HANDLE_POP(0x58) // POP
-        
-        HANDLE_SUB_REG8_IMM_ALL() /* SUB reg8, imm8 */
         
         /* SUB AL, imm8 */
         case 0x2C: {
