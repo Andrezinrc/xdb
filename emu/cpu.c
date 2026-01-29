@@ -7,42 +7,6 @@
 #include "kernel/kernel.h"
 #include "dbg.h"
 
-void* get_reg(struct CPU *cpu, int index, int size){
-    if(size == 8){
-        switch(index){
-            case 0: return &cpu->eax.l;  // AL
-            case 1: return &cpu->ecx.l;  // CL
-            case 2: return &cpu->edx.l;  // DL
-            case 3: return &cpu->ebx.l;  // BL
-            case 4: return &cpu->eax.h;  // AH
-            case 5: return &cpu->ecx.h;  // CH
-            case 6: return &cpu->edx.h;  // DH
-            case 7: return &cpu->ebx.h;  // BH
-            default: return NULL;
-        }
-    } else if(size == 32){
-        switch(index){
-            case 0: return &cpu->eax.e;
-            case 1: return &cpu->ecx.e;
-            case 2: return &cpu->edx.e;
-            case 3: return &cpu->ebx.e;
-            case 4: return &cpu->esp.e;
-            case 5: return &cpu->ebp.e;
-            case 6: return &cpu->esi.e;
-            case 7: return &cpu->edi.e;
-            default: return NULL;
-        }
-    }
-    return NULL;
-}
-
-#define DECODE_MODRM(modrm, mod, reg, rm) \
-    do { \
-        mod = (modrm) >> 6; \
-        reg = ((modrm) >> 3) & 0x07; \
-        rm  = (modrm) & 0x07; \
-    } while(0) 
-
 #define HANDLE_MOV_IMM32 \
     case 0xB8: case 0xB9: case 0xBA: case 0xBB: \
     case 0xBC: case 0xBD: case 0xBE: case 0xBF: { \

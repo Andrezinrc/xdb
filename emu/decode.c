@@ -6,13 +6,35 @@
 #include "cpu.h"
 #include "mem.h"
 
-/*
- * modrm = 0xD8 (11011000b)
- * mod = 11b (3) -> registrador-registrador
- * reg = 011b (3) -> ebx
- * r/m = 000b (0) -> eax
- * Retorna: true, *reg=3, *rm=0
- */
+void* get_reg(struct CPU *cpu, int index, int size){
+    if(size == 8){
+        switch(index){
+            case 0: return &cpu->eax.l;  // AL
+            case 1: return &cpu->ecx.l;  // CL
+            case 2: return &cpu->edx.l;  // DL
+            case 3: return &cpu->ebx.l;  // BL
+            case 4: return &cpu->eax.h;  // AH
+            case 5: return &cpu->ecx.h;  // CH
+            case 6: return &cpu->edx.h;  // DH
+            case 7: return &cpu->ebx.h;  // BH
+            default: return NULL;
+        }
+    } else if(size == 32){
+        switch(index){
+            case 0: return &cpu->eax.e;
+            case 1: return &cpu->ecx.e;
+            case 2: return &cpu->edx.e;
+            case 3: return &cpu->ebx.e;
+            case 4: return &cpu->esp.e;
+            case 5: return &cpu->ebp.e;
+            case 6: return &cpu->esi.e;
+            case 7: return &cpu->edi.e;
+            default: return NULL;
+        }
+    }
+    return NULL;
+}
+
 bool modrm_reg_reg(uint8_t modrm, uint8_t *reg, uint8_t *rm) {
     if ((modrm >> 6) != 3) return false;
     *reg = (modrm >> 3) & 7;
