@@ -385,7 +385,35 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
             cpu->eip += 2;
             break;
         }
+
+        case 0x80: {
+            uint8_t modrm = mem_read8(memory, cpu->eip + 1);
+            uint8_t mod, regop, rm;
+            DECODE_MODRM(modrm, mod, regop, rm);
+            
+            uint8_t imm = mem_read8(memory, cpu->eip + 2);
         
+            if (mod != 3) {
+                printf("0x80 com memoria nao suportado\n");
+                exit(1);
+            }
+            
+            switch(regop) {
+                case 0: op_add(cpu, get_reg(cpu, rm, 8), &imm, 8); break;
+                case 1: op_or(cpu, get_reg(cpu, rm, 8), &imm, 8); break;
+                case 4: op_and(cpu, get_reg(cpu, rm, 8), &imm, 8); break;
+                case 5: op_sub(cpu, get_reg(cpu, rm, 8), &imm, 8); break;
+                case 6: op_xor(cpu, get_reg(cpu, rm, 8), &imm, 8); break;
+                case 7: op_cmp(cpu, get_reg(cpu, rm, 8), &imm, 8); break;
+                default:
+                    printf("0x80 subop desconhecido: %d\n", regop);
+                    exit(1);
+            }
+            
+            cpu->eip += 3;
+            break;
+        }
+ 
         /* MOV AL, [addr] */
         case 0xA0: {
             uint32_t addr = mem_read32(memory, cpu->eip + 1);

@@ -35,34 +35,76 @@ static void print_bytes(uint8_t *mem, uint32_t addr, int count) {
 }
 
 static void print_modrm_8(uint8_t *memory, uint32_t eip, const char *mnemonic, bool reverse) {
-    int instr_len = 2;
-    print_bytes(memory, eip, instr_len);
     uint8_t modrm = memory[eip + 1];
-    uint8_t reg, rm;
+    uint8_t mod, reg, rm;
+    DECODE_MODRM(modrm, mod, reg, rm);
     
-    if(modrm_reg_reg(modrm, &reg, &rm)) {
+    int instr_len = 2;
+    bool has_disp32 = false;
+    uint32_t disp32 = 0;
+    
+    if (mod == 0 && rm == 5) {
+        instr_len = 6;
+        has_disp32 = true;
+        disp32 = mem_read32(memory, eip + 2);
+    }
+
+    print_bytes(memory, eip, instr_len);
+    
+    if (mod==3) {
         if (!reverse)
-            printf("%s %s, %s\n", mnemonic, reg8_name(rm), reg8_name(reg));
+            printf("    %s %s, %s\n", mnemonic, reg8_name(rm), reg8_name(reg));
         else
-            printf("%s %s, %s\n", mnemonic, reg8_name(reg), reg8_name(rm));
-    } else {
-        printf("%s mem, %s\n", mnemonic, reg8_name(reg));
+            printf("    %s %s, %s\n", mnemonic, reg8_name(reg), reg8_name(rm));
+    } 
+    else if (has_disp32) {
+        if (!reverse)
+            printf("    %s byte [0x%08X], %s\n", mnemonic, disp32, reg8_name(reg));
+        else
+            printf("    %s %s, byte [0x%08X]\n", mnemonic, reg8_name(reg), disp32);
+    }
+    else {
+        if (!reverse)
+            printf("    %s byte [mem], %s\n", mnemonic, reg8_name(reg));
+        else
+            printf("    %s %s, byte [mem]\n", mnemonic, reg8_name(reg));
     }
 }
 
 static void print_modrm_32(uint8_t *memory, uint32_t eip, const char *mnemonic, bool reverse) {
-    int instr_len = 2;
-    print_bytes(memory, eip, instr_len);
     uint8_t modrm = memory[eip + 1];
-    uint8_t reg, rm;
+    uint8_t mod, reg, rm;
+    DECODE_MODRM(modrm, mod, reg, rm);
     
-    if(modrm_reg_reg(modrm, &reg, &rm)) {
+    int instr_len = 2;
+    bool has_disp32 = false;
+    uint32_t disp32 = 0;
+    
+    if (mod==0 && rm==5){
+        instr_len = 6;
+        has_disp32 = true;
+        disp32 = mem_read32(memory, eip + 2);
+    }
+    
+    print_bytes(memory, eip, instr_len);
+    
+    if (mod == 3) {
         if (!reverse)
-            printf("%s %s, %s\n", mnemonic, reg32_name(rm), reg32_name(reg));
+            printf("    %s %s, %s\n", mnemonic, reg32_name(rm), reg32_name(reg));
         else
-            printf("%s %s, %s\n", mnemonic, reg32_name(reg), reg32_name(rm));
-    } else {
-        printf("%s mem, %s\n", mnemonic, reg32_name(reg));
+            printf("    %s %s, %s\n", mnemonic, reg32_name(reg), reg32_name(rm));
+    } 
+    else if (has_disp32) {
+        if (!reverse)
+            printf("    %s dword [0x%08X], %s\n", mnemonic, disp32, reg32_name(reg));
+        else
+            printf("    %s %s, dword [0x%08X]\n", mnemonic, reg32_name(reg), disp32);
+    }
+    else {
+        if (!reverse)
+            printf("    %s dword [mem], %s\n", mnemonic, reg32_name(reg));
+        else
+            printf("    %s %s, dword [mem]\n", mnemonic, reg32_name(reg));
     }
 }
 
@@ -193,6 +235,36 @@ void disassemble(uint8_t *memory, uint32_t eip) {
             break;
         }
         
+        case 0x80: {
+            int instr_len = 3;
+            print_bytes(memory, eip, instr_len);
+            
+            uint8_t modrm = memory[eip + 1];
+            uint8_t mod, regop, rm;
+            DECODE_MODRM(modrm, mod, regop, rm);
+            
+            uint8_t imm = memory[eip + 2];
+            
+            const char *mnemonic = "???";
+            switch(regop) {
+                case 0: mnemonic = "add"; break;
+                case 1: mnemonic = "or";  break;
+                case 2: mnemonic = "adc"; break;
+                case 3: mnemonic = "sbb"; break;
+                case 4: mnemonic = "and"; break;
+                case 5: mnemonic = "sub"; break;
+                case 6: mnemonic = "xor"; break;
+                case 7: mnemonic = "cmp"; break;
+            }
+            
+            if (mod == 3) {
+                printf("    %s %s, %u\n", mnemonic, reg8_name(rm), imm);
+            } else {
+                printf("    %s byte [mem], %u\n", mnemonic, imm);
+            }
+            break;
+        }
+ 
         /* MOV AL, [addr] */
         case 0xA0: {
             int instr_len = 5;
