@@ -39,11 +39,11 @@ int 0x80
 
 mov al, [jogada1]
 cmp al, '1'
-je validar1_max
+je validar1
 cmp al, '2'
-je validar1_max
+je validar1
 cmp al, '3'
-je validar1_max
+je validar1
 
 invalido1:
 mov eax, 4
@@ -53,9 +53,7 @@ mov edx, len_inv
 int 0x80
 jmp pedir1
 
-validar1_max:
-jmp pedir2
-
+validar1:
 pedir2:
 mov eax, 4
 mov ebx, 1
@@ -71,11 +69,11 @@ int 0x80
 
 mov al, [jogada2]
 cmp al, '1'
-je validar2_max
+je validar2
 cmp al, '2'
-je validar2_max
+je validar2
 cmp al, '3'
-je validar2_max
+je validar2
 
 mov eax, 4
 mov ebx, 1
@@ -84,7 +82,7 @@ mov edx, len_inv
 int 0x80
 jmp pedir2
 
-validar2_max:
+validar2:
 mov al, [jogada1]
 mov bl, [jogada2]
 cmp al, bl
@@ -106,6 +104,7 @@ jmp vitoria2
 caso3:
 cmp bl, '2'
 je vitoria1
+jmp vitoria2
 
 vitoria2:
 mov ecx, msg_vitoria2
