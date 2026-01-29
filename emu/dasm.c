@@ -133,6 +133,13 @@ void disassemble(uint8_t *memory, uint32_t eip) {
         uint8_t subop = memory[eip + 1];
 
         switch(subop) {
+            case 0x82: { /* JB rel32 */
+                int instr_len = 6;
+                print_bytes(memory, eip, instr_len);
+                int32_t rel = mem_read32(memory, eip + 2);
+                printf("    jb 0x%08X\n", eip + instr_len + rel);
+                return;
+            }
             case 0x84: { // JE rel32
                 int instr_len = 6;
                 print_bytes(memory, eip, instr_len);
@@ -145,6 +152,13 @@ void disassemble(uint8_t *memory, uint32_t eip) {
                 print_bytes(memory, eip, instr_len);
                 int32_t rel = mem_read32(memory, eip + 2);
                 printf("    jne 0x%08X\n", eip + instr_len + rel);
+                return;
+            }
+            case 0x86: { /* JBE rel32 */
+                int instr_len = 6;
+                print_bytes(memory, eip, instr_len);
+                int32_t rel = mem_read32(memory, eip + 2);
+                printf("    jbe 0x%08X\n", eip + instr_len + rel);
                 return;
             }
             default:
@@ -225,6 +239,30 @@ void disassemble(uint8_t *memory, uint32_t eip) {
             printf("    mov %s, %u\n", reg8_name(reg), imm);
             break;
         }
+        
+        /* MOV r/m8, imm8 */
+        case 0xC6: {
+            uint8_t modrm = memory[eip + 1];
+            uint8_t mod, regop, rm;
+            DECODE_MODRM(modrm, mod, regop, rm);
+            
+            uint8_t imm = memory[eip + 2];
+            
+            int instr_len = 3;
+            if (mod == 0 && rm == 5) instr_len = 6;
+            
+            print_bytes(memory, eip, instr_len);
+            
+            if (mod == 3) {
+                printf("    mov %s, %u\n", reg8_name(rm), imm);
+            } else if (mod == 0 && rm == 5) {
+                uint32_t addr = mem_read32(memory, eip + 2);
+                printf("    mov byte [0x%08X], %u\n", addr, imm);
+            } else {
+                printf("    mov byte [mem], %u\n", imm);
+            }
+            break;
+        }
 
         /* SUB AL, imm8 */
         case 0x2C: {
@@ -271,6 +309,14 @@ void disassemble(uint8_t *memory, uint32_t eip) {
             print_bytes(memory, eip, instr_len);
             uint32_t addr = mem_read32(memory, eip + 1);
             printf("    mov al, [0x%08X]\n", addr);
+            break;
+        }
+        /* MOV [addr], AL */
+        case 0xA2: {
+            int instr_len = 5;
+            print_bytes(memory, eip, instr_len);
+            uint32_t addr = mem_read32(memory, eip + 1);
+            printf("    mov [0x%08X], al\n", addr);
             break;
         }
         /* JNE rel8 */
