@@ -47,6 +47,14 @@ static void handle_read(struct CPU *cpu, uint8_t *memory, struct fake_process *p
     printf("\033[1;33m> \033[0m");
     fflush(stdout);
 
+#ifdef READ_SECRET
+    struct termios oldt, newt;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+#endif
+
 #ifdef READ_NONBLOCKING
     struct termios oldt, newt;
     tcgetattr(STDIN_FILENO, &oldt);
@@ -96,13 +104,17 @@ static void handle_read(struct CPU *cpu, uint8_t *memory, struct fake_process *p
         KDEBUG("\033[90mread() = %u bytes\033[0m\n", cpu->eax.e);
     }
 #endif
+
+#ifdef READ_SECRET
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    printf("\n");
+#endif
 }
 
 static void handle_exit(struct CPU *cpu, uint8_t *memory) {
     printf("Processo terminou %d\n", cpu->ebx.e);
     memory[0] = 0xFF;
 }
-
 
 void kernel_handle_syscall(struct fake_process *proc) {
     if (!kernel_initialized) kernel_init();
@@ -120,8 +132,8 @@ void kernel_handle_syscall(struct fake_process *proc) {
         case SYS_WRITE:
             handle_write(cpu, memory);
             break;
-		 case SYS_READ:
-		     handle_read(cpu, memory, proc);
+		case SYS_READ:
+		    handle_read(cpu, memory, proc);
             break;
         case SYS_GETPID:
             cpu->eax.e = proc->pid;
