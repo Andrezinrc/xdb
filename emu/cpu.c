@@ -302,6 +302,14 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
         case 0x0F: {
             uint8_t subop = mem_read8(memory, cpu->eip + 1);
             switch(subop){
+                case 0x82: { /* JB rel32 */
+                    int32_t rel = mem_read32(memory, cpu->eip + 2);
+                    if(cpu->flags.CF)
+                        cpu->eip += rel + 6;
+                    else
+                        cpu->eip += 6;
+                    break;
+                }
                 case 0x84: { /* JZ/JE rel32 */
                     int32_t rel = mem_read32(memory, cpu->eip + 2);
                     if(cpu->flags.ZF)
@@ -318,6 +326,14 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
                         cpu->eip += 6;
                     break;
                 }
+                case 0x86: { /* JBE rel32 */
+                    int32_t rel = mem_read32(memory, cpu->eip + 2);
+                    if (cpu->flags.CF || cpu->flags.ZF)
+                        cpu->eip += rel + 6;
+                    else
+                        cpu->eip += 6;
+                    break;
+                }
                 default:
                     printf("Opcode 0F desconhecido: 0x%02X em EIP=0x%08X\n", subop, cpu->eip);
                     exit(1);
@@ -326,7 +342,47 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
         }
 
         HANDLE_MOV_IMM32
+        
+        /* MOV reg8, imm8 */
+        case 0xB0: case 0xB1: case 0xB2: case 0xB3:
+        case 0xB4: case 0xB5: case 0xB6: case 0xB7: {
+            uint8_t reg = opcode - 0xB0; 
+            
+            uint8_t imm = mem_read8(memory, cpu->eip + 1);
+            
+            uint8_t *reg_ptr = get_reg(cpu, reg, 8);
+            *reg_ptr = imm;
+            
+            cpu->eip += 2;
+            break;
+        }
 		
+        /* MOV r/m8, imm8 */
+        case 0xC6: {
+            uint8_t modrm = mem_read8(memory, cpu->eip + 1);
+            uint8_t mod, regop, rm;
+            DECODE_MODRM(modrm, mod, regop, rm);
+            
+            uint8_t imm = mem_read8(memory, cpu->eip + 2);
+            
+            if (mod == 3) {
+                // MOV reg8, imm8
+                uint8_t *reg = get_reg(cpu, rm, 8);
+                *reg = imm;
+            } else if (mod == 0 && rm == 5) {
+                // MOV [disp32], imm8
+                uint32_t addr = mem_read32(memory, cpu->eip + 2);
+                mem_write8(memory, addr, imm);
+                cpu->eip += 6;
+            } else {
+                printf("0xC6 com memoria nao suportado\n");
+                exit(1);
+            }
+            
+            if (mod == 3) cpu->eip += 3;
+            break;
+        }
+
         HANDLE_INCDEC(0x40, ++)  // INC
         HANDLE_INCDEC(0x48, --)  // DEC
      		
@@ -422,6 +478,14 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
             break;
         }
         
+        /* MOV [addr], AL */
+        case 0xA2: {
+            uint32_t addr = mem_read32(memory, cpu->eip + 1);
+            mem_write8(memory, addr, cpu->eax.l);
+            cpu->eip += 5;
+            break;
+        }
+        
         /* CALL rel32 */
         case 0xE8: { 
             int32_t rel = mem_read32(memory, cpu->eip+1); 
@@ -450,7 +514,7 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
             cpu->eip+=2;
             break;
         }
-        
+
         /* HLT */
         case 0xF4: printf("Encerrando.\n"); exit(0); break;
 
