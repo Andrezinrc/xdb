@@ -193,7 +193,14 @@ void disassemble(uint8_t *memory, uint32_t eip) {
             break;
         }
         
-             
+        /* MOV AL, [addr] */
+        case 0xA0: {
+            int instr_len = 5;
+            print_bytes(memory, eip, instr_len);
+            uint32_t addr = mem_read32(memory, eip + 1);
+            printf("    mov al, [0x%08X]\n", addr);
+            break;
+        }
         /* JNE rel8 */
         case 0x75: {
             instr_len = 2;

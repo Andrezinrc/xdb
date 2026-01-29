@@ -422,6 +422,14 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
             break;
         }
         
+        /* MOV AL, [addr] */
+        case 0xA0: {
+            uint32_t addr = mem_read32(memory, cpu->eip + 1);
+            cpu->eax.l = mem_read8(memory, addr);
+            cpu->eip += 5;
+            break;
+        }
+        
         /* CALL rel32 */
         case 0xE8: { 
             int32_t rel = mem_read32(memory, cpu->eip+1); 
