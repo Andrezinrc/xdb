@@ -116,6 +116,7 @@ void op_or(struct CPU *cpu, void *dst, void *src, int size){
 
 void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
     uint8_t opcode = mem_read8(memory, cpu->eip);
+    cpu->last_opcode = opcode;
 
     switch(opcode){
         case 0x0F: {

@@ -19,6 +19,7 @@ struct CPU {
     uint32_t eip;
     struct Flags flags;
     int debug_mode;
+    uint8_t last_opcode;
 };
 
 struct fake_process;

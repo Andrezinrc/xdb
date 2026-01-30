@@ -25,12 +25,9 @@ static void handle_write(struct CPU *cpu, uint8_t *memory) {
         return;
     }
 
-    printf("\033[1;37m");
     for (uint32_t i=0;i<cpu->edx.e;i++) {
         putchar(memory[cpu->ecx.e + i]);
     }
-    printf("\033[0m\n");
-    
     cpu->eax.e = count;
 }
 
