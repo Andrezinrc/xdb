@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define MEM_SIZE 0x10000 // 64KB
+#define MEM_SIZE 0x1000 // 4KB
 struct CPU;
 
 
