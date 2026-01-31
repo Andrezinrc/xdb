@@ -356,6 +356,12 @@ void disassemble(uint8_t *memory, uint32_t eip) {
             printf("    mov [0x%08X], al\n", addr);
             break;
         }
+        /* MOVSB */
+        case 0xA4: {
+            print_bytes(memory, eip, 1);
+            printf("    movsb\n");
+            break;
+        }
         /* JNE rel8 */
         case 0x75: {
             instr_len = 2;

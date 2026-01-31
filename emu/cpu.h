@@ -10,7 +10,7 @@ union Reg32 {
 };
 
 struct Flags { 
-    uint8_t CF, ZF, SF, OF; 
+    uint8_t CF, ZF, SF, OF, DF; 
 };
 
 struct CPU {

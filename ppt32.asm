@@ -2,30 +2,43 @@ BITS 32
 org 0x0
 
 section .data
-msg_jogador1 db "Jogador 1: 1-Pedra 2-Papel 3-Tesoura",10,0
-msg_jogador2 db "Jogador 2: 1-Pedra 2-Papel 3-Tesoura",10,0
+msg_jogador1 db "CPU: 1-Pedra 2-Papel 3-Tesoura",10,0
+len_msg1    equ $ - msg_jogador1
+
+msg_jogador2 db "Voce: 1-Pedra 2-Papel 3-Tesoura",10,0
+len_msg2    equ $ - msg_jogador2
+
 msg_empate   db "Empate!",10,0
-msg_vitoria1 db "Jogador 1 venceu!",10,0
-msg_vitoria2 db "Jogador 2 venceu!",10,0
+len_empate   equ $ - msg_empate
+
+msg_vitoria1 db "CPU venceu!",10,0
+len_v1       equ $ - msg_vitoria1
+
+msg_vitoria2 db "Voce venceu!",10,0
+len_v2       equ $ - msg_vitoria2
+
 msg_invalido db "Jogada invalida! (1-3)",10,0
+len_inv      equ $ - msg_invalido
 
 msg_round    db "Round "
+len_round    equ $ - msg_round
+
 round_num    db "0",10,0
-msg_result   db "J1=0 J2=0",10,0
 
-msg_perdeu db "VOCE PERDEU!",10,0
-msg_ganhou db "VOCE GANHOU!",10,0
+msg_result   db "CPU="
+cpu_jogada   db "        Voce="
+voce_jogada  db "        ",10,0
+len_result   equ $ - msg_result
 
-len_msg1 equ 37
-len_msg2 equ 37
-len_empate equ 8
-len_v1 equ 18
-len_v2 equ 18
-len_inv equ 23
-len_round equ 8
-len_result equ 10
-len_perdeu equ 13
-len_ganhou equ 13
+pedra_str   db "Pedra   "
+papel_str   db "Papel   "
+tesoura_str db "Tesoura "
+
+msg_perdeu   db "CPU GANHOU!",10,0
+len_perdeu   equ $ - msg_perdeu
+
+msg_ganhou   db "VOCE GANHOU!",10,0
+len_ganhou   equ $ - msg_ganhou
 
 section .bss
 jogada1 resb 2
@@ -87,10 +100,39 @@ int 0x80
 jmp pedir2
 
 validar2:
+mov esi, pedra_str
+mov edi, cpu_jogada
+mov ecx, 8
+
 mov al, [jogada1]
-mov [msg_result+3], al
+cmp al, '1'
+je copiar_cpu
+mov esi, papel_str
+cmp al, '2'
+je copiar_cpu
+mov esi, tesoura_str
+
+copiar_cpu:
+movsb
+dec ecx
+jnz copiar_cpu
+
+mov esi, pedra_str
+mov edi, voce_jogada
+mov ecx, 8
+
 mov al, [jogada2]
-mov [msg_result+8], al
+cmp al, '1'
+je copiar_voce
+mov esi, papel_str
+cmp al, '2'
+je copiar_voce
+mov esi, tesoura_str
+
+copiar_voce:
+movsb
+dec ecx
+jnz copiar_voce
 
 mov eax, 4
 mov ebx, 1

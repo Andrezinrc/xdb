@@ -374,7 +374,7 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
             cpu->eip += 3;
             break;
         }
-
+        
         /* MOV AL, [addr] */
         case 0xA0: {
             uint32_t addr = mem_read32(memory, cpu->eip + 1);
@@ -391,6 +391,24 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
             break;
         }
         
+        /* MOVSB */
+        case 0xA4: {
+            uint8_t src_byte = mem_read8(memory, cpu->esi.e);
+            
+            mem_write8(memory, cpu->edi.e, src_byte);
+            
+            if (cpu->flags.DF == 0) {
+                cpu->esi.e++;
+                cpu->edi.e++;
+            } else {
+                cpu->esi.e--;
+                cpu->edi.e--;
+            }
+            
+            cpu->eip += 1;
+            break;
+        }
+ 
         /* CALL rel32 */
         case 0xE8: { 
             int32_t rel = mem_read32(memory, cpu->eip+1); 
