@@ -13,8 +13,8 @@ msg_round    db "Round "
 round_num    db "0",10,0
 msg_result   db "J1=0 J2=0",10,0
 
-msg_campeao1 db "Jogador 1 CAMPEAO!",10,0
-msg_campeao2 db "Jogador 2 CAMPEAO!",10,0
+msg_perdeu db "VOCE PERDEU!",10,0
+msg_ganhou db "VOCE GANHOU!",10,0
 
 len_msg1 equ 37
 len_msg2 equ 37
@@ -24,7 +24,8 @@ len_v2 equ 18
 len_inv equ 23
 len_round equ 8
 len_result equ 10
-len_campeao equ 19
+len_perdeu equ 13
+len_ganhou equ 13
 
 section .bss
 jogada1 resb 2
@@ -49,35 +50,14 @@ mov al, [round]
 mov [round_num], al
 
 pedir1:
-mov eax, 4
-mov ebx, 1
-mov ecx, msg_jogador1
-mov edx, len_msg1
-int 0x80
+rdtsc
+xor eax, edx
+and eax, 3
+cmp al, 0
+je pedir1
+add al, '0'
+mov [jogada1], al
 
-mov eax, 3
-mov ebx, 0
-mov ecx, jogada1
-mov edx, 2
-int 0x80
-
-mov al, [jogada1]
-cmp al, '1'
-je validar1
-cmp al, '2'
-je validar1
-cmp al, '3'
-je validar1
-
-invalido1:
-mov eax, 4
-mov ebx, 1
-mov ecx, msg_invalido
-mov edx, len_inv
-int 0x80
-jmp pedir1
-
-validar1:
 pedir2:
 mov eax, 4
 mov ebx, 1
@@ -173,11 +153,11 @@ mov [pontos_j2], al
 verificar_campeao:
 mov al, [pontos_bin_j1]
 cmp al, 3
-je campeao1
+je perdeu
 
 mov al, [pontos_bin_j2]
 cmp al, 3
-je campeao2
+je ganhou
 
 mov al, [round]
 add al, 1
@@ -195,19 +175,19 @@ mov edx, len_empate
 int 0x80
 jmp verificar_campeao
 
-campeao1:
+perdeu:
 mov eax, 4
 mov ebx, 1
-mov ecx, msg_campeao1
-mov edx, len_campeao
+mov ecx, msg_perdeu
+mov edx, len_perdeu
 int 0x80
 jmp fim
 
-campeao2:
+ganhou:
 mov eax, 4
 mov ebx, 1
-mov ecx, msg_campeao2
-mov edx, len_campeao
+mov ecx, msg_ganhou
+mov edx, len_ganhou
 int 0x80
 
 fim:

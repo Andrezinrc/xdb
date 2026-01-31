@@ -302,7 +302,37 @@ void disassemble(uint8_t *memory, uint32_t eip) {
             }
             break;
         }
- 
+
+        case 0x83: {
+            int instr_len = 3;
+            print_bytes(memory, eip, instr_len);
+            
+            uint8_t modrm = memory[eip + 1];
+            uint8_t mod, regop, rm;
+            DECODE_MODRM(modrm, mod, regop, rm);
+            
+            int8_t imm8 = (int8_t)memory[eip + 2];
+            
+            const char *mnemonic = "???";
+            switch(regop) {
+                case 0: mnemonic = "add"; break;
+                case 1: mnemonic = "or"; break;
+                case 2: mnemonic = "adc"; break;
+                case 3: mnemonic = "sbb"; break;
+                case 4: mnemonic = "and"; break;
+                case 5: mnemonic = "sub"; break;
+                case 6: mnemonic = "xor"; break;
+                case 7: mnemonic = "cmp"; break;
+            }
+            
+            if (mod == 3) {
+                printf("    %s %s, %d\n", mnemonic, reg32_name(rm), imm8);
+            } else {
+                printf("    %s dword [mem], %d\n", mnemonic, imm8);
+            }
+            break;
+        }
+
         /* MOV AL, [addr] */
         case 0xA0: {
             int instr_len = 5;
@@ -327,7 +357,23 @@ void disassemble(uint8_t *memory, uint32_t eip) {
             printf("    jne 0x%08X\n", eip + instr_len + rel);
             break;
         }
-
+        /* JG rel8 */
+        case 0x7F: {
+            int instr_len = 2;
+            print_bytes(memory, eip, instr_len);
+            int8_t rel = (int8_t)memory[eip + 1];
+            printf("    jg 0x%08X\n", eip + instr_len + rel);
+            break;
+        }
+        
+        /* JA rel8 */
+        case 0x77: {
+            int instr_len = 2;
+            print_bytes(memory, eip, instr_len);
+            int8_t rel = (int8_t)memory[eip + 1];
+            printf("    ja 0x%08X\n", eip + instr_len + rel);
+            break;
+        }
         // NOP
         case 0x90:
             print_bytes(memory, eip, 1);

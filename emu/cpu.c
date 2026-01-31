@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "cpu.h"
 #include "cpu_exec.h"
 #include "mem.h"
@@ -122,6 +123,21 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
         case 0x0F: {
             uint8_t subop = mem_read8(memory, cpu->eip + 1);
             switch(subop){
+                case 0x31: { /* RDTSC */
+                    static uint64_t tsc = 0x12345678;
+                    
+                    tsc = tsc * 6364136223846793005ULL + 1442695040888963407ULL;
+                    
+                    struct timespec ts;
+                    clock_gettime(CLOCK_MONOTONIC, &ts);
+                    tsc ^= ((uint64_t)ts.tv_sec << 32) | ts.tv_nsec;
+                    
+                    cpu->eax.e = (uint32_t)(tsc & 0xFFFFFFFF);
+                    cpu->edx.e = (uint32_t)(tsc >> 32);
+                    
+                    cpu->eip += 2;
+                    break;
+                }
                 case 0x82: { /* JB rel32 */
                     int32_t rel = mem_read32(memory, cpu->eip + 2);
                     if(cpu->flags.CF)
@@ -251,6 +267,26 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
             break;
         } 
         
+        /* JG rel8 */
+        case 0x7F: {
+            int8_t rel = mem_read8(memory, cpu->eip + 1);
+            if (!cpu->flags.ZF && (cpu->flags.SF == cpu->flags.OF))
+                cpu->eip += rel + 2;
+            else
+                cpu->eip += 2;
+            break;
+        }
+        
+        /* JA rel8  */
+        case 0x77: {
+            int8_t rel = mem_read8(memory, cpu->eip + 1);
+            if (!cpu->flags.CF && !cpu->flags.ZF)
+                cpu->eip += rel + 2;
+            else
+                cpu->eip += 2;
+            break;
+        }
+        
         HANDLE_PUSH(0x50) // PUSH
         HANDLE_POP(0x58) // POP
         
@@ -262,6 +298,7 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
             break;
         }
 
+        /* Grp1 Ev, Ib */
         case 0x80: {
             uint8_t modrm = mem_read8(memory, cpu->eip + 1);
             uint8_t mod, regop, rm;
@@ -290,6 +327,54 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
             break;
         }
  
+        /* Grp1 Ev, Ib */
+        case 0x83: {
+            uint8_t modrm = mem_read8(memory, cpu->eip + 1);
+            uint8_t mod, regop, rm;
+            DECODE_MODRM(modrm, mod, regop, rm);
+            
+            int8_t imm8 = (int8_t)mem_read8(memory, cpu->eip + 2);
+            int32_t imm32 = (int32_t)imm8;
+            
+            if (mod!=3) {
+                printf("0x83 com memoria nao suportado\n");
+                exit(1);
+            }
+            
+            switch(regop) {
+                case 0: /* ADD */
+                    op_add(cpu, get_reg(cpu, rm, 32), (uint8_t*)&imm32, 32);
+                    break;
+                case 1: /* OR */
+                    op_or(cpu, get_reg(cpu, rm, 32), (uint8_t*)&imm32, 32);
+                    break;
+                case 2: /* ADC */
+                    printf("0x83/2 ADC not implemented\n");
+                    exit(1);
+                case 3: /* SBB */
+                    printf("0x83/3 SBB not implemented\n");
+                    exit(1);
+                case 4: /* AND */
+                    op_and(cpu, get_reg(cpu, rm, 32), (uint8_t*)&imm32, 32);
+                    break;
+                case 5: /* SUB */
+                    op_sub(cpu, get_reg(cpu, rm, 32), (uint8_t*)&imm32, 32);
+                    break;
+                case 6: /* XOR */
+                    op_xor(cpu, get_reg(cpu, rm, 32), (uint8_t*)&imm32, 32);
+                    break;
+                case 7: /* CMP */
+                    op_cmp(cpu, get_reg(cpu, rm, 32), (uint8_t*)&imm32, 32);
+                    break;
+                default:
+                    printf("0x83 subop desconhecido: %d\n", regop);
+                    exit(1);
+            }
+            
+            cpu->eip += 3;
+            break;
+        }
+
         /* MOV AL, [addr] */
         case 0xA0: {
             uint32_t addr = mem_read32(memory, cpu->eip + 1);
@@ -334,7 +419,7 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
             cpu->eip+=2;
             break;
         }
-
+    
         /* HLT */
         case 0xF4: printf("Encerrando.\n"); exit(0); break;
 

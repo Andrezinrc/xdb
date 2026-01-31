@@ -37,7 +37,12 @@ static void fade_opcodes(void) {
 }
 
 static void draw_opcode_table(void) {
-    for (int r=0;r<16;r++) {
+   printf("\033[4;1H");
+   for(int i = 0; i < 18; i++)
+        printf(CLR_LINE "\n");
+    printf("\033[4;1H");
+ 
+   for (int r=0;r<16;r++) {
         for (int c=0;c<16;c++) {
             int op = (r<<4) | c;
 
@@ -63,8 +68,6 @@ static void print_banner(const char *prog){
 
 static void print_header(struct fake_process *proc){
     printf("\033[H");
-    printf(CLR_LINE "Memory: %u KB (0x%08X - 0x%08X)\n",
-           MEM_SIZE / 1024, 0x00000000, MEM_SIZE - 1);
     printf(CLR_LINE "Stack top: 0x%08X\n", proc->cpu.esp.e);
     printf(CLR_LINE "Entry point: 0x%08X\n\n", proc->cpu.eip);
 }
@@ -170,6 +173,4 @@ int main(int argc, char **argv){
     } else {
         run_program(&proc);
     }
-
-    return 0;
 }
