@@ -133,6 +133,13 @@ void disassemble(uint8_t *memory, uint32_t eip) {
         uint8_t subop = memory[eip + 1];
 
         switch(subop) {
+            case 0x31: // RDTSC
+                if (op == 0x0F && memory[eip + 1] == 0x31) {
+                    print_bytes(memory, eip, 2);
+                    printf("    rdtsc\n");
+                    return;
+                }
+                break;
             case 0x82: { /* JB rel32 */
                 int instr_len = 6;
                 print_bytes(memory, eip, instr_len);
