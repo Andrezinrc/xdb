@@ -27,8 +27,6 @@ struct fake_process;
 void cpu_init(struct CPU *cpu, uint32_t mem_size);
 void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc);
 
-void* get_reg(struct CPU *cpu, int index, int size);
-
 void op_add(struct CPU *cpu, void *dst, void *src, int size);
 void op_sub(struct CPU *cpu, void *dst, void *src, int size);
 void op_mov(struct CPU *cpu, void *dst, void *src, int size);

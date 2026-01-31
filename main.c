@@ -61,18 +61,20 @@ static void print_banner(const char *prog){
     printf(" %s debug <program.bin>\n", prog);
 }
 
-static void print_header(struct fake_process *proc, const char *bin_path, int debug_mode){
+static void print_header(struct fake_process *proc){
     printf("\033[H");
-    printf(CLR_LINE "CPU: x86 32-bit (emulado)\n");
     printf(CLR_LINE "Memory: %u KB (0x%08X - 0x%08X)\n",
            MEM_SIZE / 1024, 0x00000000, MEM_SIZE - 1);
     printf(CLR_LINE "Stack top: 0x%08X\n", proc->cpu.esp.e);
-    printf(CLR_LINE "Entry point: 0x%08X\n", proc->cpu.eip);
-    printf(CLR_LINE "Mode: %s\n", debug_mode ? "DEBUG" : "RUN");
-    printf(CLR_LINE "Target: %s\n\n", bin_path);
+    printf(CLR_LINE "Entry point: 0x%08X\n\n", proc->cpu.eip);
 }
 
-static void run_program(struct fake_process *proc, const char *bin_path){
+static void print_header_debug(void) {
+    printf("\033[2J\033[H");
+    printf("Use 'h' for help commands\n\n");
+}
+
+static void run_program(struct fake_process *proc){
     if (!proc) return;
 
     memset(opcode_heat, 0, sizeof(opcode_heat));
@@ -85,7 +87,7 @@ static void run_program(struct fake_process *proc, const char *bin_path){
         opcode_heat[proc->cpu.last_opcode] = OPCODE_FADE;
         fade_opcodes();
 
-        print_header(proc, bin_path, 0);
+        print_header(proc);
         draw_opcode_table();
 
         printf("\033[30;1H");
@@ -107,11 +109,12 @@ static void debugger_loop(struct fake_process *proc) {
     char cmd[64];
     struct Debugger dbg = {0};
 
-    fake_ptrace(PTRACE_ATTACH, FAKE_PID, NULL, NULL);
-
+    fake_ptrace(PTRACE_ATTACH, FAKE_PID, NULL, NULL);  
+    print_header_debug();
+ 
     for (;;) {
         fake_ptrace(PTRACE_GETREGS, FAKE_PID, NULL, &proc->cpu);
-
+        
         if (!dbg.running) {
             disassemble(proc->memory, proc->cpu.eip);
             dbg_prompt(cmd, sizeof(cmd));
@@ -163,10 +166,9 @@ int main(int argc, char **argv){
     cpu_init(&proc.cpu, MEM_SIZE);
 
     if(debug_mode) {
-		 print_header(&proc, bin_path, debug_mode);
         debugger_loop(&proc);
     } else {
-        run_program(&proc, bin_path);
+        run_program(&proc);
     }
 
     return 0;

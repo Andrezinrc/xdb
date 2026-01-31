@@ -2,8 +2,6 @@ BITS 32
 org 0x0
 
 section .data
-h1 db "PEDRA PAPEL TESOURA", 10
-
 msg_jogador1 db "Jogador 1: 1-Pedra 2-Papel 3-Tesoura",10,0
 msg_jogador2 db "Jogador 2: 1-Pedra 2-Papel 3-Tesoura",10,0
 msg_empate   db "Empate!",10,0
@@ -18,7 +16,6 @@ msg_result   db "J1=0 J2=0",10,0
 msg_campeao1 db "Jogador 1 CAMPEAO!",10,0
 msg_campeao2 db "Jogador 2 CAMPEAO!",10,0
 
-len_h1 21
 len_msg1 equ 37
 len_msg2 equ 37
 len_empate equ 8
