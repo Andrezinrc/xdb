@@ -4,21 +4,21 @@
 #include "../cpu.h"
 #include "../process.h"
 
-//#define DEBUG_KERNEL
-
+#define DEBUG_KERNEL
 #ifdef DEBUG_KERNEL
-    #define KDEBUG(...) printf(__VA_ARGS__)
-#else
-    #define KDEBUG(...)
-#endif
 
+extern int kernel_debug_enabled;
+
+#define KDEBUG(...) \
+    do { if (kernel_debug_enabled) printf(__VA_ARGS__); } while (0)
+#endif
 
 #define MAX_PROCS 32
 
 #define SYS_EXIT  1
 #define SYS_WRITE 4
 
-#define READ_SECRET
+//#define READ_SECRET
 //#define READ_NONBLOCKING
 #define SYS_READ  3
 

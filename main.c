@@ -150,7 +150,14 @@ int main(int argc, char **argv){
         return 1;
     }
 
-    int debug_mode = strcmp(argv[1], "debug") == 0;
+    int debug_mode = 0;
+    if(strcmp(argv[1], "debug") == 0){
+        debug_mode = 1;
+    } else if(strcmp(argv[1], "run") == 0) {
+        debug_mode = 0;
+    } else {
+        printf("Modo inválido!\n");
+    }
     const char *bin_path = argv[2];
 
     uint8_t *memory = mem_create();
@@ -164,6 +171,8 @@ int main(int argc, char **argv){
     proc.memory = memory;
     proc.alive = 1;
     proc.cpu.debug_mode = debug_mode;
+
+    kernel_debug_enabled = debug_mode;
 
     fp_register(&proc);
     cpu_init(&proc.cpu, MEM_SIZE);

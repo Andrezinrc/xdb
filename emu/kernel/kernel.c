@@ -6,11 +6,12 @@
 #include <fcntl.h>
 
 static int kernel_initialized = 0;
+int kernel_debug_enabled = 1;
 
 void kernel_init(void) {
     if (kernel_initialized) return;
     
-    KDEBUG("Inicializado\n");
+    KDEBUG("\033[90mInicializado\033[0m\n");
     kernel_initialized = 1;
 }
 
@@ -116,12 +117,12 @@ static void handle_exit(struct CPU *cpu, uint8_t *memory) {
 
 void kernel_handle_syscall(struct fake_process *proc) {
     if (!kernel_initialized) kernel_init();
-	
+    
     struct CPU *cpu = &proc->cpu;
     uint8_t *memory = proc->memory;
     int syscall_num = cpu->eax.e;
     
-    KDEBUG("Syscall %d em EIP=0x%08X\n", syscall_num, cpu->eip);
+    KDEBUG("\033[90mSyscall %d em EIP=0x%08X\033[0m\n", syscall_num, cpu->eip);
     
     switch (syscall_num) {
         case SYS_EXIT:
@@ -130,14 +131,14 @@ void kernel_handle_syscall(struct fake_process *proc) {
         case SYS_WRITE:
             handle_write(cpu, memory);
             break;
-		case SYS_READ:
-		    handle_read(cpu, memory, proc);
+        case SYS_READ:
+            handle_read(cpu, memory, proc);
             break;
         case SYS_GETPID:
             cpu->eax.e = proc->pid;
             break;
         default:
-            KDEBUG("Syscall %d não implementada\n", syscall_num);
+            KDEBUG("\033[90mSyscall %d não implementada\033[0m\n", syscall_num);
             cpu->eax.e = -1;
             break;
     }

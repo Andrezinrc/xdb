@@ -251,12 +251,6 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
                 case 1: /* OR */
                     op_or(cpu, get_reg(cpu, rm, 32), (uint8_t*)&imm32, 32);
                     break;
-                case 2: /* ADC */
-                    printf("0x83/2 ADC not implemented\n");
-                    exit(1);
-                case 3: /* SBB */
-                    printf("0x83/3 SBB not implemented\n");
-                    exit(1);
                 case 4: /* AND */
                     op_and(cpu, get_reg(cpu, rm, 32), (uint8_t*)&imm32, 32);
                     break;
@@ -332,7 +326,7 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
         case 0xCD: {
             uint8_t num = mem_read8(memory, cpu->eip+1);
             if(num==0x80){
-                if(cpu->debug_mode) dbg_trace_syscall(cpu);
+                dbg_trace_syscall(cpu);
                 
                 if(cpu->eax.e==1 && proc) proc->alive=0;
                 else kernel_handle_syscall(proc);

@@ -1,19 +1,8 @@
-/*
- * Debugger commands:
- * s = step       -> executa uma instrução
- * c = continue   -> executa até parar/encerrar
- * q = quit       -> sai do emulador
- * r <reg> <val>  -> escreve registrador
- * w <addr> <val> -> escreve memória
- * b <addr>       -> set breakpoint (INT3)
- * d <addr>       -> delete breakpoint
- */
-
-#ifndef DEBUGGER_H
-#define DEBUGGER_H
-
+#pragma once
+#include <stdio.h>
 #include <stdint.h>
 #include "cpu.h"
+#include "kernel/kernel.h"
 
 struct Debugger { int running; };
 
@@ -26,5 +15,3 @@ void dbg_handle_cmd(
 );
 void dbg_help(void);
 void dbg_trace_syscall(struct CPU *cpu);
-
-#endif

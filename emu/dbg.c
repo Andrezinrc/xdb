@@ -270,17 +270,17 @@ void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *m
 void dbg_trace_syscall(struct CPU *cpu){
     switch (cpu->eax.e){
         case 1:
-            printf("[syscall] exit(status=%d)\n", cpu->ebx.e);
+            KDEBUG("\033[90m[syscall] exit(status=%d)\033[0m\n", cpu->ebx.e);
             break;
         case 3:
-            printf("[syscall] read(fd=%d, buf=0x%X, len=%d)\n",
+            KDEBUG("\033[90m[syscall] read(fd=%d, buf=0x%X, len=%d)\033[0m\n",
                    cpu->ebx.e, cpu->ecx.e, cpu->edx.e);
             break;
         case 4:
-            printf("[syscall] write(fd=%d, buf=0x%X, len=%d)\n",
+            KDEBUG("\033[90m[syscall] write(fd=%d, buf=0x%X, len=%d)\033[0m\n",
                    cpu->ebx.e, cpu->ecx.e, cpu->edx.e);
             break;
         default:
-            printf("[syscall] deseconhecido eax=%d\n", cpu->eax.e);
+            KDEBUG("\033[90m[syscall] desconhecido eax=%d\033[0m\n", cpu->eax.e);
     }
 }
