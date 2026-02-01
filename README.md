@@ -14,7 +14,19 @@ This project focuses on **understanding, observing, and controlling** low-level 
 ## Usage
 
 ```bash
-./xdb <program.bin>
+make
+```
+
+## Mode run
+
+```bash
+./xdb run <program.bin>
+```
+
+## Mode debug
+
+```bash
+./xdb debug <program.bin>
 ```
 
 ## Purpose
