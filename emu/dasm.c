@@ -251,6 +251,7 @@ void disassemble(uint8_t *memory, uint32_t eip) {
         case 0xC6: {
             uint8_t modrm = memory[eip + 1];
             uint8_t mod, regop, rm;
+            (void)regop;
             DECODE_MODRM(modrm, mod, regop, rm);
             
             uint8_t imm = memory[eip + 2];

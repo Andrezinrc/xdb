@@ -32,6 +32,7 @@ static void handle_write(struct CPU *cpu, uint8_t *memory) {
 }
 
 static void handle_read(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
+    (void)proc;
     int fd = cpu->ebx.e;
     char *buf = (char*)&memory[cpu->ecx.e];
     size_t max_count = cpu->edx.e;

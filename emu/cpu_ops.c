@@ -36,6 +36,7 @@ void op_sub(struct CPU *cpu, void *dst, void *src, int size){
 }
 
 void op_mov(struct CPU *cpu, void *dst, void *src, int size){
+    (void)cpu;
     if(size==8) *(uint8_t*)dst = *(uint8_t*)src;
     else *(uint32_t*)dst = *(uint32_t*)src;
 }

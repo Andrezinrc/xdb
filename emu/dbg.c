@@ -20,7 +20,7 @@ void dbg_help(void){
     printf("c          - Continue execution\n");
     printf("q          - Quit debugger\n");
     printf("r reg val  - Write register value\n");
-    printf("w addr val - Write memory (use '??' for placeholders)\n");
+    printf("w addr val - Write memory (use '?' '?' for placeholders)\n");
     printf("f addr val - Fill placeholders only\n");
     printf("b addr     - Set breakpoint\n");
     printf("d addr     - Delete breakpoint\n");

@@ -99,6 +99,7 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
         case 0xC6: {
             uint8_t modrm = mem_read8(memory, cpu->eip + 1);
             uint8_t mod, regop, rm;
+            (void)regop;
             DECODE_MODRM(modrm, mod, regop, rm);
             
             uint8_t imm = mem_read8(memory, cpu->eip + 2);
