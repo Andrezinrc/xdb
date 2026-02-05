@@ -30,6 +30,7 @@ void dbg_help(void){
     printf("h          - Show this help\n\n");
 }
 
+// Dump de memória em hex + ASCII com suporte a placeholders
 static void dbg_examine(uint32_t addr, uint32_t len) {
     uint32_t i;
 
@@ -72,6 +73,7 @@ static void dbg_examine(uint32_t addr, uint32_t len) {
     }
 }
 
+// Backtrace simples lendo endereços de retorno da pilha
 void dbg_backtrace(struct CPU *cpu, uint8_t *mem) {
     uint32_t esp = cpu->esp.e;
     int frame = 0;
@@ -147,6 +149,7 @@ void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *m
         return;
     }
 
+    // Escrita de memória com suporte a ?? (placeholders)
     if (cmd[0] == 'w') {
         char *saveptr;
         char *token = strtok_r(cmd + 1, " ", &saveptr);
@@ -202,6 +205,7 @@ void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *m
         return;
     }
 
+    // Preenche apenas bytes marcados como placeholder
     if (cmd[0] == 'f') {
         char *saveptr;
         char *token = strtok_r(cmd + 1, " ", &saveptr);
@@ -249,6 +253,7 @@ void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *m
         return;
     }
     
+    // Exame de memória
     if (cmd[0] == 'x') {
         uint32_t addr, len;
         if (sscanf(cmd, "x %x %u", &addr, &len) == 2) {
@@ -259,6 +264,7 @@ void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *m
         return;
     }
  
+    // Impressão de registradores
     if (tolower(cmd[0]) == 'p') {
         char arg[32];
         sscanf(cmd, "p %s", arg);
@@ -296,6 +302,7 @@ void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *m
     }
 }
 
+// Log de syscalls simuladas
 void dbg_trace_syscall(struct CPU *cpu){
     switch (cpu->eax.e){
         case 1:

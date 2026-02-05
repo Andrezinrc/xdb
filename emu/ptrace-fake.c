@@ -11,12 +11,14 @@ struct breakpoint breakpoints[MAX_BREAKPOINTS];
 static struct fake_process *proc_table[32];
 static int proc_count = 0;
 
+// Registra processo fake
 void fp_register(struct fake_process *p){
     if(proc_count < 32) {
         proc_table[proc_count++] = p;
     }
 }
 
+// Procura processo pelo pid
 struct fake_process *fp_get(pid_t pid) {
     for(int i=0;i<proc_count;i++)
         if(proc_table[i]->pid == pid)
@@ -73,6 +75,7 @@ long fake_ptrace(int request, pid_t pid, void *addr, void *data) {
     }
 }
 
+// Define breakpoint com INT3
 void bp_set(uint32_t addr, uint8_t *memory) {
     for (int i=0;i<MAX_BREAKPOINTS;i++) {
         if (!breakpoints[i].active) {
@@ -87,6 +90,7 @@ void bp_set(uint32_t addr, uint8_t *memory) {
     printf("Sem espaço para mais breakpoints!\n");
 }
 
+// Remove breakpoint e restaura byte original
 void bp_clear(uint32_t addr, uint8_t *memory) {
     for (int i=0;i<MAX_BREAKPOINTS;i++) {
         if (breakpoints[i].active && breakpoints[i].addr == addr) {
@@ -97,6 +101,7 @@ void bp_clear(uint32_t addr, uint8_t *memory) {
     }
 }
 
+// Checa se EIP bate com algum breakpoint
 int bp_check(struct CPU *cpu) {
     for (int i=0;i<MAX_BREAKPOINTS;i++) {
         if (breakpoints[i].active && breakpoints[i].addr == cpu->eip) {

@@ -35,6 +35,7 @@ void* get_reg(struct CPU *cpu, int index, int size){
     return NULL;
 }
 
+// Extrai regs de ModRM se for reg-reg
 bool modrm_reg_reg(uint8_t modrm, uint8_t *reg, uint8_t *rm) {
     if ((modrm >> 6) != 3) return false;
     *reg = (modrm >> 3) & 7;
@@ -42,6 +43,7 @@ bool modrm_reg_reg(uint8_t modrm, uint8_t *reg, uint8_t *rm) {
     return true;
 }
 
+// Calcula endereço de memória do ModRM
 uint32_t modrm_mem_addr(struct CPU *cpu, uint8_t *memory, uint8_t modrm) {
     uint8_t mod = modrm >> 6;
     uint8_t rm  = modrm & 7;
