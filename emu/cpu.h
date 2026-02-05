@@ -22,11 +22,16 @@ struct Flags {
     uint8_t OF; // Overflow Flag
 };
 
+#define STACK_SIZE 0x100 // Tamanho da pilha da CPU
+
 struct CPU {
     union Reg32 eax, ebx, ecx, edx;
     union Reg32 esi, edi, ebp, esp;
     uint32_t eip;
     struct Flags flags;
+
+    uint32_t stack_base;
+    uint32_t stack_limit;
 };
 
 struct fake_process;

@@ -12,7 +12,11 @@
 
 void cpu_init(struct CPU *cpu, uint32_t mem_size) {
     memset(cpu, 0, sizeof(struct CPU));
-    cpu->esp.e = mem_size - 4;
+
+    cpu->stack_base  = mem_size;
+    cpu->stack_limit = mem_size - STACK_SIZE;
+
+    cpu->esp.e = cpu->stack_base;
     cpu->eip = 0;
 }
 

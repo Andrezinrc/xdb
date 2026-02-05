@@ -67,19 +67,21 @@ void mem_write32(uint8_t *mem, uint32_t addr, uint32_t val) {
 // Empilha valor na pilha x86
 // Pilha cresce para endereços menores, por isso ESP é decrementado
 void push32(uint8_t *mem, struct CPU *cpu, uint32_t val){
-    if(cpu->esp.e < 4){
+    uint32_t new_esp = cpu->esp.e - 4;
+
+    if(new_esp < cpu->stack_limit){
         printf("Stack overflow! ESP=0x%08X\n", cpu->esp.e);
         exit(1);
     }
 
-    cpu->esp.e -= 4;                   // Move ponteiro da pilha
+    cpu->esp.e = new_esp;                   // Move ponteiro da pilha
     mem_write32(mem, cpu->esp.e, val); // Escreve no topo
 }
 
 
 // Desempilha valor da pilha x86
 uint32_t pop32(uint8_t *mem, struct CPU *cpu) {
-    if(cpu->esp.e + 3 >= MEM_SIZE){
+    if(cpu->esp.e > cpu->stack_base){
         printf("Stack underflow! ESP=0x%08X\n", cpu->esp.e);
         exit(1);
     }
