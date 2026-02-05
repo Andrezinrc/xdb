@@ -4,13 +4,22 @@
 #include <stdint.h>
 
 union Reg32 {
-    uint32_t e;
-    struct { uint16_t x; };
-    struct { uint8_t l, h; };
+    uint32_t e;       // EAX
+    struct { 
+        uint16_t x;   // AX
+    };
+    struct { 
+        uint8_t l;    // AL
+        uint8_t h;    // AH
+    };
 };
 
+
 struct Flags { 
-    uint8_t CF, ZF, SF, OF; 
+    uint8_t CF; // Carry Flag
+    uint8_t ZF; // Zero Flag
+    uint8_t SF; // Sign Flag
+    uint8_t OF; // Overflow Flag
 };
 
 struct CPU {
@@ -18,25 +27,11 @@ struct CPU {
     union Reg32 esi, edi, ebp, esp;
     uint32_t eip;
     struct Flags flags;
-    int debug_mode;
 };
 
 struct fake_process;
 
 void cpu_init(struct CPU *cpu, uint32_t mem_size);
 void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc);
-
-void* get_reg(struct CPU *cpu, int index, int size);
-
-void op_add(struct CPU *cpu, void *dst, void *src, int size);
-void op_sub(struct CPU *cpu, void *dst, void *src, int size);
-void op_mov(struct CPU *cpu, void *dst, void *src, int size);
-void op_xor(struct CPU *cpu, void *dst, void *src, int size);
-void op_cmp(struct CPU *cpu, void *dst, void *src, int size);
-
-void update_ZF_SF(struct CPU *cpu, uint32_t res);
-void update_add_flags(struct CPU *cpu, uint32_t a, uint32_t b, uint32_t res);
-void update_sub_flags(struct CPU *cpu, uint32_t a, uint32_t b, uint32_t res);
-
 
 #endif

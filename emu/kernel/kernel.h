@@ -12,19 +12,9 @@
     #define KDEBUG(...)
 #endif
 
-
-#define MAX_PROCS 32
-
-static struct fake_process *proc_table[MAX_PROCS];
-static int proc_count = 0;
-
-#define SYS_EXIT  1
-#define SYS_WRITE 4
-
-#define READ_SECRET
-//#define READ_NONBLOCKING
-#define SYS_READ  3
-
+#define SYS_EXIT    1
+#define SYS_WRITE   4
+#define SYS_READ    3
 #define SYS_GETPID 20
 
 void kernel_init(void);

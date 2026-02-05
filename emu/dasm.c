@@ -125,48 +125,23 @@ static void print_imm32(uint8_t *memory, uint32_t eip, const char *mnemonic, con
         printf("%s %s, 0x%08X\n", mnemonic, reg_name, imm);
 }
 
+static void print_mov_moffs(uint8_t *memory, uint32_t eip, const char *mnemonic, const char *reg_name, int size, bool to_acc) {
+    int instr_len = 1 + 4;
+    uint32_t addr = mem_read32(memory, eip + 1);
+    print_bytes(memory, eip, instr_len);
+
+    if(to_acc) {
+        // MOV AL/EAX, [addr]
+        printf("    %s %s, [%#08X]\n", mnemonic, reg_name, addr);
+    } else {
+        // MOV [addr], AL/EAX
+        printf("    %s [%#08X], %s\n", mnemonic, addr, reg_name);
+    }
+}
+
 void disassemble(uint8_t *memory, uint32_t eip) {
     uint8_t op = memory[eip];
     printf("%08X: ", eip);
-	
-    if(op == 0x0F) {
-        uint8_t subop = memory[eip + 1];
-
-        switch(subop) {
-            case 0x82: { /* JB rel32 */
-                int instr_len = 6;
-                print_bytes(memory, eip, instr_len);
-                int32_t rel = mem_read32(memory, eip + 2);
-                printf("    jb 0x%08X\n", eip + instr_len + rel);
-                return;
-            }
-            case 0x84: { // JE rel32
-                int instr_len = 6;
-                print_bytes(memory, eip, instr_len);
-                int32_t rel = mem_read32(memory, eip + 2);
-                printf("    je 0x%08X\n", eip + instr_len + rel);
-                return;
-            }
-            case 0x85: { // JNE rel32
-                int instr_len = 6;
-                print_bytes(memory, eip, instr_len);
-                int32_t rel = mem_read32(memory, eip + 2);
-                printf("    jne 0x%08X\n", eip + instr_len + rel);
-                return;
-            }
-            case 0x86: { /* JBE rel32 */
-                int instr_len = 6;
-                print_bytes(memory, eip, instr_len);
-                int32_t rel = mem_read32(memory, eip + 2);
-                printf("    jbe 0x%08X\n", eip + instr_len + rel);
-                return;
-            }
-            default:
-                print_bytes(memory, eip, 2);
-                printf("    db 0x0F, 0x%02X\n", subop);
-                return;
-        }
-    }
 
     int instr_len = 1;	
     if(op >= 0xB8 && op <= 0xBF) { // MOV reg32, imm32
@@ -239,30 +214,6 @@ void disassemble(uint8_t *memory, uint32_t eip) {
             printf("    mov %s, %u\n", reg8_name(reg), imm);
             break;
         }
-        
-        /* MOV r/m8, imm8 */
-        case 0xC6: {
-            uint8_t modrm = memory[eip + 1];
-            uint8_t mod, regop, rm;
-            DECODE_MODRM(modrm, mod, regop, rm);
-            
-            uint8_t imm = memory[eip + 2];
-            
-            int instr_len = 3;
-            if (mod == 0 && rm == 5) instr_len = 6;
-            
-            print_bytes(memory, eip, instr_len);
-            
-            if (mod == 3) {
-                printf("    mov %s, %u\n", reg8_name(rm), imm);
-            } else if (mod == 0 && rm == 5) {
-                uint32_t addr = mem_read32(memory, eip + 2);
-                printf("    mov byte [0x%08X], %u\n", addr, imm);
-            } else {
-                printf("    mov byte [mem], %u\n", imm);
-            }
-            break;
-        }
 
         /* SUB AL, imm8 */
         case 0x2C: {
@@ -273,52 +224,22 @@ void disassemble(uint8_t *memory, uint32_t eip) {
             break;
         }
         
-        case 0x80: {
-            int instr_len = 3;
-            print_bytes(memory, eip, instr_len);
-            
-            uint8_t modrm = memory[eip + 1];
-            uint8_t mod, regop, rm;
-            DECODE_MODRM(modrm, mod, regop, rm);
-            
-            uint8_t imm = memory[eip + 2];
-            
-            const char *mnemonic = "???";
-            switch(regop) {
-                case 0: mnemonic = "add"; break;
-                case 1: mnemonic = "or";  break;
-                case 2: mnemonic = "adc"; break;
-                case 3: mnemonic = "sbb"; break;
-                case 4: mnemonic = "and"; break;
-                case 5: mnemonic = "sub"; break;
-                case 6: mnemonic = "xor"; break;
-                case 7: mnemonic = "cmp"; break;
-            }
-            
-            if (mod == 3) {
-                printf("    %s %s, %u\n", mnemonic, reg8_name(rm), imm);
-            } else {
-                printf("    %s byte [mem], %u\n", mnemonic, imm);
-            }
+        case 0xA0: // MOV AL, [addr]
+            print_mov_moffs(memory, eip, "mov", "al", 8, true);
             break;
-        }
- 
-        /* MOV AL, [addr] */
-        case 0xA0: {
-            int instr_len = 5;
-            print_bytes(memory, eip, instr_len);
-            uint32_t addr = mem_read32(memory, eip + 1);
-            printf("    mov al, [0x%08X]\n", addr);
+        
+        case 0xA1: // MOV EAX, [addr]
+            print_mov_moffs(memory, eip, "mov", "eax", 32, true);
             break;
-        }
-        /* MOV [addr], AL */
-        case 0xA2: {
-            int instr_len = 5;
-            print_bytes(memory, eip, instr_len);
-            uint32_t addr = mem_read32(memory, eip + 1);
-            printf("    mov [0x%08X], al\n", addr);
+        
+        case 0xA2: // MOV [addr], AL
+            print_mov_moffs(memory, eip, "mov", "al", 8, false);
             break;
-        }
+        
+        case 0xA3: // MOV [addr], EAX
+            print_mov_moffs(memory, eip, "mov", "eax", 32, false);
+            break;
+    
         /* JNE rel8 */
         case 0x75: {
             instr_len = 2;
