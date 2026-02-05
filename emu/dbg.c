@@ -26,6 +26,7 @@ void dbg_help(void){
     printf("d addr     - Delete breakpoint\n");
     printf("x addr len - Examine memory (hex + ASCII)\n");
     printf("p reg      - Print register value (use 'all' for all registers)\n");
+    printf("bt         - Backtrace (show call stack)\n");
     printf("h          - Show this help\n\n");
 }
 
@@ -58,7 +59,6 @@ static void dbg_examine(uint32_t addr, uint32_t len) {
             }
         }
         
-        /* Preenche espaço se a linha tiver menos de 16 bytes */
         for (int j=bytes_in_line;j<16;j++) {
             printf("   ");
         }
@@ -70,6 +70,30 @@ static void dbg_examine(uint32_t addr, uint32_t len) {
         }
         printf("|\033[97m\n");
     }
+}
+
+void dbg_backtrace(struct CPU *cpu, uint8_t *mem) {
+    uint32_t esp = cpu->esp.e;
+    int frame = 0;
+
+    printf("=== Backtrace ===\n");
+
+    printf("#%d  EIP=0x%08X (current)\n", frame++, cpu->eip);
+
+    while (esp + 3 < MEM_SIZE) {
+        uint32_t ret = mem_read32(mem, esp);
+
+        if (ret==0)
+            break;
+
+        printf("#%d  RET=0x%08X  [ESP=0x%08X]\n",
+               frame++, ret, esp);
+
+        esp += 4;
+    }
+
+    if (frame==1)
+        printf("(no call frames)\n");
 }
 
 void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *memory){
@@ -86,6 +110,11 @@ void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *m
     if (cmd[0] == 's'){}
     if (cmd[0] == 'h') {
         dbg_help();
+        return;
+    }
+
+    if (strcmp(cmd, "bt") == 0) {
+        dbg_backtrace(cpu, memory);
         return;
     }
 
@@ -229,7 +258,7 @@ void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *m
         }
         return;
     }
-
+ 
     if (tolower(cmd[0]) == 'p') {
         char arg[32];
         sscanf(cmd, "p %s", arg);
