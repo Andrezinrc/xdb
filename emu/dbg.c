@@ -8,7 +8,7 @@
 static uint8_t placeholder_map[MEM_SIZE];
 
 void dbg_prompt(char *buf, size_t size){
-    printf("\033[1;32m(dbg)\033[0m ");
+    printf("\033[1;32m(xdb)\033[0m ");
     fflush(stdout);
     fgets(buf, size, stdin);
     buf[strcspn(buf, "\n")] = 0;

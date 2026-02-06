@@ -58,8 +58,10 @@ static void print_banner(const char *prog){
 
 static void print_header(struct fake_process *proc){
     printf("\033[2J\033[H");
-    printf("xdb> Entry=0x%08X ESP=0x%08X Memory=%u KB | type 'h' for help\n\n",
+    printf("\n---[ xdb ]---\n");
+    printf("EIP:%08X ESP:%08X MEM:%uKB\n", 
            proc->cpu.eip, proc->cpu.esp.e, MEM_SIZE / 1024);
+    printf("Use 'h' for help\n\n");
 }
 
 int main(int argc, char **argv){
