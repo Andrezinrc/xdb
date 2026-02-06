@@ -22,12 +22,13 @@ void dbg_help(void){
     printf("r reg val  - Write register value\n");
     printf("w addr val - Write memory (use '??' for placeholders)\n");
     printf("f addr val - Fill placeholders only\n");
-    printf("b addr     - Set breakpoint\n");
-    printf("d addr     - Delete breakpoint\n");
-    printf("x addr len - Examine memory (hex + ASCII)\n");
-    printf("p reg      - Print register value (use 'all' for all registers)\n");
-    printf("bt         - Backtrace (show call stack)\n");
-    printf("h          - Show this help\n\n");
+    printf("b addr      - Set breakpoint\n");
+    printf("d addr      - Delete breakpoint\n");
+    printf("x addr len  - Examine memory (hex + ASCII)\n");
+    printf("p reg       - Print register value (use 'all' for all registers)\n");
+    printf("bt [n]      - Backtrace (logical call stack, default depth)\n");
+    printf("stack [n]   - Dump raw stack from ESP (default: 8 dwords)\n");
+    printf("h           - Show this help\n\n");
 }
 
 // Dump de memória em hex + ASCII com suporte a placeholders
@@ -73,8 +74,30 @@ static void dbg_examine(uint32_t addr, uint32_t len) {
     }
 }
 
+void dbg_stack(struct CPU *cpu, uint8_t *mem, int depth) {
+    uint32_t esp = cpu->esp.e;
+
+    printf("=== Stack Dump (ESP=0x%08X) ===\n", esp);
+
+    for (int i=0;i<depth;i++) {
+        if (esp + 3 >= MEM_SIZE)
+            break;
+
+        uint32_t val = mem_read32(mem, esp);
+
+        printf("[%02d] 0x%08X : 0x%08X", i, esp, val);
+
+        if (val<MEM_SIZE)
+            printf("  <code?>");
+
+        printf("\n");
+
+        esp += 4;
+    }
+}
+
 // Backtrace simples lendo endereços de retorno da pilha
-void dbg_backtrace(struct CPU *cpu, uint8_t *mem) {
+void dbg_backtrace(struct CPU *cpu, uint8_t *mem, int max_frames) {
     uint32_t esp = cpu->esp.e;
     int frame = 0;
 
@@ -82,16 +105,17 @@ void dbg_backtrace(struct CPU *cpu, uint8_t *mem) {
 
     printf("#%d  EIP=0x%08X (current)\n", frame++, cpu->eip);
 
-    while (esp + 3 < MEM_SIZE) {
+    while (esp + 3 < MEM_SIZE && frame < max_frames) {
         uint32_t ret = mem_read32(mem, esp);
 
         if (ret==0)
             break;
 
         printf("#%d  RET=0x%08X  [ESP=0x%08X]\n",
-               frame++, ret, esp);
+               frame, ret, esp);
 
         esp += 4;
+        frame++;
     }
 
     if (frame==1)
@@ -115,8 +139,18 @@ void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *m
         return;
     }
 
-    if (strcmp(cmd, "bt") == 0) {
-        dbg_backtrace(cpu, memory);
+    if (strncmp(cmd, "stack", 5) == 0) {
+        int depth = 8;
+    
+        sscanf(cmd, "stack %d", &depth);
+        dbg_stack(cpu, memory, depth);
+        return;
+    }
+    
+    if (strncmp(cmd, "bt", 2) == 0) {
+        int depth = 8;
+        sscanf(cmd, "bt %d", &depth);
+        dbg_backtrace(cpu, memory, depth);
         return;
     }
 
