@@ -43,7 +43,7 @@ void cpu_step(struct CPU *cpu, uint8_t *memory, struct fake_process *proc) {
 
         HANDLE_INCDEC(0x40, ++)  // INC r32
         HANDLE_INCDEC(0x48, --)  // DEC r32
-     		
+       	
         HANDLE_MOV(0x88)     /* MOV r/m,r */
         MAKE_OP(0x00, op_add) /* ADD r/m,r / AL/EAX,imm */
         MAKE_OP(0x18, op_sub) /* SUB r/m,r / AL/EAX,imm */

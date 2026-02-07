@@ -2,6 +2,7 @@
 #include "cpu_flags.h"
 #include <stdint.h>
 
+// Soma src em dst, atualiza flags
 void op_add(struct CPU *cpu, void *dst, void *src, int size){
     if(size==8){
         uint8_t *d=(uint8_t*)dst, *s=(uint8_t*)src;
@@ -19,6 +20,7 @@ void op_add(struct CPU *cpu, void *dst, void *src, int size){
     }
 }
 
+// Subtrai src de dst, atualiza flags
 void op_sub(struct CPU *cpu, void *dst, void *src, int size){
     if(size==8){
         uint8_t *d=(uint8_t*)dst, *s=(uint8_t*)src;
@@ -36,11 +38,13 @@ void op_sub(struct CPU *cpu, void *dst, void *src, int size){
     }
 }
 
+// Move src para dst (sem afetar flags)
 void op_mov(struct CPU *cpu, void *dst, void *src, int size){
     if(size==8) *(uint8_t*)dst = *(uint8_t*)src;
     else *(uint32_t*)dst = *(uint32_t*)src;
 }
 
+// XOR entre dst e src, atualiza ZF e SF
 void op_xor(struct CPU *cpu, void *dst, void *src, int size){
     if(size==8){
         *(uint8_t*)dst ^= *(uint8_t*)src;
@@ -54,6 +58,7 @@ void op_xor(struct CPU *cpu, void *dst, void *src, int size){
     cpu->flags.OF = 0;
 }
 
+// Compara dst com src (subtração sem salvar resultado), atualiza flags
 void op_cmp(struct CPU *cpu, void *dst, void *src, int size){
     if(size==8){
         uint8_t a = *(uint8_t*)dst;
@@ -69,6 +74,7 @@ void op_cmp(struct CPU *cpu, void *dst, void *src, int size){
     }
 }
 
+// AND entre dst e src, atualiza ZF e SF, limpa CF e OF
 void op_and(struct CPU *cpu, void *dst, void *src, int size){
     if(size==8) *(uint8_t*)dst &= *(uint8_t*)src;
     else *(uint32_t*)dst &= *(uint32_t*)src;
@@ -77,6 +83,7 @@ void op_and(struct CPU *cpu, void *dst, void *src, int size){
     cpu->flags.OF = 0;
 }
 
+// AND entre dst e src, atualiza ZF e SF, limpa CF e OF
 void op_or(struct CPU *cpu, void *dst, void *src, int size){
     if(size==8) *(uint8_t*)dst |= *(uint8_t*)src;
     else *(uint32_t*)dst |= *(uint32_t*)src;

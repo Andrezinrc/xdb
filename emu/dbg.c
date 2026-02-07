@@ -4,6 +4,7 @@
 #include "dbg.h"
 #include "mem.h"
 #include "ptrace-fake.h"
+#include "kernel/kernel.h"
 
 static uint8_t placeholder_map[MEM_SIZE];
 
@@ -339,18 +340,21 @@ void dbg_handle_cmd(struct Debugger *dbg, char *cmd, struct CPU *cpu, uint8_t *m
 // Log de syscalls simuladas
 void dbg_trace_syscall(struct CPU *cpu){
     switch (cpu->eax.e){
-        case 1:
+        case SYS_EXIT:
             printf("[syscall] exit(status=%d)\n", cpu->ebx.e);
             break;
-        case 3:
+        case SYS_READ:
             printf("[syscall] read(fd=%d, buf=0x%X, len=%d)\n",
                    cpu->ebx.e, cpu->ecx.e, cpu->edx.e);
             break;
-        case 4:
+        case SYS_WRITE:
             printf("[syscall] write(fd=%d, buf=0x%X, len=%d)\n",
                    cpu->ebx.e, cpu->ecx.e, cpu->edx.e);
             break;
+        case SYS_GETPID:
+            printf("[syscall] getpid() = %d\n", cpu->eax.e);
+            break;
         default:
-            printf("[syscall] deseconhecido eax=%d\n", cpu->eax.e);
+            printf("[syscall] desconhecido eax=%d\n", cpu->eax.e);
     }
 }

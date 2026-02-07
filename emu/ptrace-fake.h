@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include "cpu.h"
-#include "process.h"
+#include "kernel/process.h"
 
 #define MAX_BREAKPOINTS 16
 

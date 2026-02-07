@@ -1,8 +1,9 @@
 #ifndef KERNEL_H
 #define KERNEL_H
 
+#include <stdio.h>
 #include "../cpu.h"
-#include "../process.h"
+#include "process.h"
 
 //#define DEBUG_KERNEL
 
